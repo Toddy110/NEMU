@@ -52,13 +52,13 @@ static int cmd_si(char *args) {
 			}
 		}
 	}
-	if (step_count <= 10){
+	if (step_count < 10){
 		printf("Executing %d instruction(s)...\n", step_count);
 		cpu_exec(step_count);
 	}
 	else{
-		printf("Executing %d instruction(s)...\n", 10);
-		cpu_exec(10);
+		printf("Executing %d instruction(s)...\n", 9);
+		cpu_exec(9);
 	}
 	return 0;
 }
