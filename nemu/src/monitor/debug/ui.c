@@ -52,7 +52,7 @@ static int cmd_si(char *args) {
 			}
 		}
 	}
-	if (step_count <= 10){
+	if (step_count < 10){
 		cpu_exec(step_count);
 	}
 	else{
