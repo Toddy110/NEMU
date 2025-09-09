@@ -117,17 +117,17 @@ static int cmd_x(char *args){
 	}
 	uint32_t current_addr = addr;
 	for (uint32_t i = 0; i < count; i++){
-		if ((i % 16) == 0){
+		if ((i % 4) == 0){
 			printf("0x%08x: ", current_addr);
 		}
-		uint8_t byte_val = (uint8_t)swaddr_read(current_addr, 1);
-		printf("0x%02x ", byte_val);
-		current_addr += 1;
-		if ((i % 16) == 15){
+		uint32_t word_val = swaddr_read(current_addr, 4);
+		printf("0x%08x ", word_val);
+		current_addr += 4;
+		if ((i % 4) == 3){
 			printf("\n");
 		}
 	}
-	if ((count % 16) != 0){
+	if ((count % 4) != 0){
 		printf("\n");
 	}
 	return 0;
