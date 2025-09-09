@@ -36,6 +36,31 @@ static int cmd_q(char *args) {
 	return -1;
 }
 
+static int cmd_si(char *args) {
+	int step_count = 1;  // 默认执行1条指令
+	
+	if (args != NULL) {
+		// 解析参数
+		char *arg = strtok(args, " ");
+		if (arg != NULL) {
+			// 尝试将参数转换为整数
+			char *endptr;
+			long parsed_count = strtol(arg, &endptr, 10);
+			
+			// 检查转换是否成功
+			if (*endptr == '\0' && parsed_count > 0) {
+				step_count = (int)parsed_count;
+			} else {
+				printf("Invalid step count: %s. Using default value 1.\n", arg);
+			}
+		}
+	}
+	
+	printf("Executing %d instruction(s)...\n", step_count);
+	cpu_exec(step_count);
+	return 0;
+}
+
 static int cmd_help(char *args);
 
 static struct {
@@ -45,6 +70,7 @@ static struct {
 } cmd_table [] = {
 	{ "help", "Display informations about all supported commands", cmd_help },
 	{ "c", "Continue the execution of the program", cmd_c },
+	{ "si", "Single step execution (si [count])", cmd_si },
 	{ "q", "Exit NEMU", cmd_q },
 
 	/* TODO: Add more commands */
