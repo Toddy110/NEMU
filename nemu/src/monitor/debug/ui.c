@@ -118,10 +118,10 @@ static int cmd_x(char *args){
 	uint32_t current_addr = addr;
 	for (uint32_t i = 0; i < count; i++){
 		if ((i % 16) == 0){
-			printf("%08x: ", current_addr);
+			printf("0x%08x: ", current_addr);
 		}
 		uint8_t byte_val = (uint8_t)swaddr_read(current_addr, 1);
-		printf("%02x ", byte_val);
+		printf("0x%02x ", byte_val);
 		current_addr += 1;
 		if ((i % 16) == 15){
 			printf("\n");
