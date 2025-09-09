@@ -91,6 +91,49 @@ static int cmd_info(char *args){
 	return 0;
 }
 
+static int cmd_x(char *args){
+	if (args == NULL){
+		return 0;
+	}
+	char *count_str = strtok(args, " ");
+	if (count_str == NULL){
+		return 0;
+	}
+	char * addr_str = strtok(NULL, " ");
+	if (addr_str == NULL){
+		return 0;
+	}
+
+	char *endptr = NULL;
+	long count = strtol(count_str, &endptr, 10);
+	if (*endptr != '\0' || count <= 0){
+		return 0;
+	}
+
+	endptr = NULL;
+	uint32_t addr = (uint32_t)strtoul(addr_str, &endptr, 16);
+	if (*endptr != '\0'){
+		return 0;
+	}
+	uint32_t current_addr = addr;
+	for (uint32_t i = 0; i < count; i++){
+		if (i % 4 == 0){
+			printf("%08x: ", current_addr);
+		}
+		uint32_t value = swaddr_read(current_addr, 4);
+		printf("%08x ", value);
+		current_addr += 4;
+
+		if (i % 4 == 3){
+			printf("\n");
+		}
+	}
+	if (count % 4 != 0){
+		printf("\n");
+	}
+	return 0;
+}
+
 static int cmd_help(char *args);
 
 static struct {
@@ -101,6 +144,7 @@ static struct {
 	{ "help", "Display informations about all supported commands", cmd_help },
 	{ "c", "Continue the execution of the program", cmd_c },
 	{ "si", "Single step execution (si [count])", cmd_si},
+	{ "x", "Examine memory: x N EXPR (hex expr only)", cmd_x},
 	{ "info", "Display information about the program state", cmd_info},
 	{ "q", "Exit NEMU", cmd_q },
 
