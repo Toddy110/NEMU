@@ -61,6 +61,36 @@ static int cmd_si(char *args) {
 	return 0;
 }
 
+static int cmd_info(char *args){
+	if (args == NULL){
+		return 0;
+	}
+	
+	char *subcmd = strtok(args, " ");
+	if (subcmd == NULL){
+		return 0;
+	}
+	if (strcmp(subcmd, "r") == 0){
+		printf("eax            0x%08x\t%d\n", cpu.eax, cpu.eax);
+		printf("ecx            0x%08x\t%d\n", cpu.ecx, cpu.ecx);
+		printf("edx            0x%08x\t%d\n", cpu.edx, cpu.edx);
+		printf("ebx            0x%08x\t%d\n", cpu.ebx, cpu.ebx);
+		printf("esp            0x%08x\t%d\n", cpu.esp, cpu.esp);
+		printf("ebp            0x%08x\t%d\n", cpu.ebp, cpu.ebp);
+		printf("esi            0x%08x\t%d\n", cpu.esi, cpu.esi);
+		printf("edi            0x%08x\t%d\n", cpu.edi, cpu.edi);
+		printf("eip            0x%08x\t%d\n", cpu.eip, cpu.eip);
+		printf("eflags         0x%08x\t%d\n", cpu.eflags.val, cpu.eflags.val);
+		printf("CF=%d PF=%d AF=%d ZF=%d SF=%d TF=%d IF=%d DF=%d OF=%d\n",
+			cpu.eflags.CF, cpu.eflags.PF, cpu.eflags.AF, cpu.eflags.ZF,
+			cpu.eflags.SF, cpu.eflags.TF, cpu.eflags.IF, cpu.eflags.DF, cpu.eflags.OF);
+	}
+	else{
+		return 0;
+	}
+	return 0;
+}
+
 static int cmd_help(char *args);
 
 static struct {
@@ -71,6 +101,7 @@ static struct {
 	{ "help", "Display informations about all supported commands", cmd_help },
 	{ "c", "Continue the execution of the program", cmd_c },
 	{ "si", "Single step execution (si [count])", cmd_si},
+	{ "info", "Display information about the program state", cmd_info},
 	{ "q", "Exit NEMU", cmd_q },
 
 	/* TODO: Add more commands */
