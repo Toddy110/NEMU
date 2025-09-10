@@ -7,7 +7,7 @@
 #include <regex.h>
 
 enum {
-	NOTYPE = 256, NUMBER, EQ
+	NOTYPE = 256, DEC_NUMBER, EQ, HEX_NUMBER
 
 	/* TODO: Add more token types */
 
@@ -26,12 +26,13 @@ static struct rule {
 	{" +",	NOTYPE, 0},					// spaces
 	{"\\+", '+', 2},					// plus
 	{"==", EQ, 1},						// equal
-	{"[0-9]+", NUMBER, 0},	    // decimal number
+	{"[0-9]+", DEC_NUMBER, 0},	    	// decimal number
 	{"\\(", '(', 4},					// left parenthesis
 	{"\\)", ')', 4},					// right parenthesis
 	{"-", '-', 2},						// minus
 	{"\\*", '*', 3},					//multiply
-	{"/", '/', 3}						//divide
+	{"/", '/', 3},						//divide
+	{"0[xX][0-9a-fA-F]+", HEX_NUMBER, 0},   // hexadecimal number
 	
 };
 
@@ -97,7 +98,8 @@ static bool make_token(char *e) {
 					case '(':
 					case ')':
 					case EQ:
-					case NUMBER:
+					case DEC_NUMBER:
+					case HEX_NUMBER:
 						tokens[nr_token].type = rules[i].token_type;
 						tokens[nr_token].priority = rules[i].priority;
 						strncpy(tokens[nr_token].str, substr_start, substr_len);
@@ -190,8 +192,12 @@ uint32_t eval(int p, int q){
 	}
 	else if (p == q){
 		uint32_t value = 0;
-		if (tokens[p].type == NUMBER){
+		if (tokens[p].type == DEC_NUMBER){
 			sscanf(tokens[p].str, "%d", &value);
+			return value;
+		}
+		if (tokens[p].type == HEX_NUMBER){
+			sscanf(tokens[p].str, "%x", &value);
 			return value;
 		}
 	}
