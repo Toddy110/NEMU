@@ -97,6 +97,7 @@ static bool make_token(char *e) {
 					case '(':
 					case ')':
 					case EQ:
+					case NUMBER:
 						tokens[nr_token].type = rules[i].token_type;
 						tokens[nr_token].priority = rules[i].priority;
 						strncpy(tokens[nr_token].str, substr_start, substr_len);
