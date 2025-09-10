@@ -173,6 +173,7 @@ uint32_t eval(int p, int q){
 		uint32_t value = 0;
 		if (tokens[p].type == NUMBER){
 			sscanf(tokens[p].str, "%d", &value);
+			return value;
 		}
 	}
 	else if (check_parentheses(p, q) == true){
@@ -201,9 +202,8 @@ uint32_t expr(char *e, bool *success) {
 		*success = false;
 		return 0;
 	}
-
+	
 	/* TODO: Insert codes to evaluate the expression. */
-	panic("please implement me");
-	return 0;
+	return eval(0, nr_token - 1);
 }
 
