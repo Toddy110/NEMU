@@ -26,7 +26,7 @@ static struct rule {
 	{" +",	NOTYPE, 0},					// spaces
 	{"\\+", '+', 2},					// plus
 	{"==", EQ, 1},						// equal
-	{"\\b[0-9]+\\b", NUMBER, 0},	    // decimal number
+	{"[0-9]+", NUMBER, 0},	    // decimal number
 	{"\\(", '(', 4},					// left parenthesis
 	{"\\)", ')', 4},					// right parenthesis
 	{"-", '-', 2},						// minus
