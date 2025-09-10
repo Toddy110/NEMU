@@ -7,7 +7,7 @@
 #include <regex.h>
 
 enum {
-	NOTYPE = 256, DEC_NUMBER, EQ, HEX_NUMBER, NEQ, AND, OR
+	NOTYPE = 256, DEC_NUMBER, EQ, HEX_NUMBER, NEQ, AND, OR, NEG
 
 	/* TODO: Add more token types */
 
@@ -27,16 +27,16 @@ static struct rule {
 	{"0[xX][0-9a-fA-F]+", HEX_NUMBER, 0},   // hexadecimal number
 	{"\\+", '+', 3},					// plus
 	{"==", EQ, 3},						// equal
-	{"!=", NEQ, 3},				   // not equal
+	{"!=", NEQ, 3},				  	    // not equal
+	{"!", NEG, 6},    					// logical NOT
 	{"[0-9]+", DEC_NUMBER, 0},	    	// decimal number
-	{"\\(", '(', 6},					// left parenthesis
-	{"\\)", ')', 6},					// right parenthesis
+	{"\\(", '(', 7},					// left parenthesis
+	{"\\)", ')', 7},					// right parenthesis
 	{"-", '-', 4},						// minus
 	{"\\*", '*', 5},					//multiply
 	{"/", '/', 5},						//divide
 	{"&&", AND, 2},                      //and
 	{"\\|\\|", OR, 1}                   //or
-	
 };
 
 #define NR_REGEX (sizeof(rules) / sizeof(rules[0]) )
@@ -104,6 +104,7 @@ static bool make_token(char *e) {
 					case NEQ:
 					case AND:
 					case OR:
+					case NEG:
 					case DEC_NUMBER:
 					case HEX_NUMBER:
 						tokens[nr_token].type = rules[i].token_type;
@@ -221,6 +222,10 @@ uint32_t eval(int p, int q){
 	}
 	else if (tokens[p].type == '-' && is_unary_minus(p)){
 		return -eval(p + 1, q);
+	}
+	else if (tokens[p].type == '!' && tokens[p].type == NEG){
+		uint32_t value = !eval(p + 1, q);
+		return value;
 	}
 	else{
 		int op = dominant_operator(p, q);
