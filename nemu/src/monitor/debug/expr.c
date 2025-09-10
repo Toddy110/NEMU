@@ -150,6 +150,20 @@ bool is_unary_minus(int pos){
 	return false;
 }
 
+bool is_dereference(int pos){
+	if (tokens[pos].type != '*'){
+		return false;
+	}
+	if (pos == 0){
+		return true;
+	}
+	int previous_type = tokens[pos - 1].type;
+	if (previous_type == '+' || previous_type == '-' || previous_type == '*' || previous_type == '/' || previous_type == '('){
+		return true;
+	}
+	return false;
+}
+
 int dominant_operator(int p, int q){
 	int min_priority = 20;
 	int op_pos = -1;
@@ -175,6 +189,9 @@ int dominant_operator(int p, int q){
 			// }
 			if(tokens[i].priority >= 1){
 				if (tokens[i].type == '-' && is_unary_minus(i)){
+					continue;
+				}
+				if (tokens[i].type == '*' && is_dereference(i)){
 					continue;
 				}
 				if (tokens[i].priority <= min_priority){
@@ -286,6 +303,9 @@ uint32_t eval(int p, int q){
 	}
 	else if (tokens[p].type == '-' && is_unary_minus(p)){
 		return -eval(p + 1, q);
+	}
+	else if (tokens[p].type == '*' && is_dereference(p)){
+		return swaddr_read(eval(p + 1, q), 4);
 	}
 	else if (tokens[p].type == NEG){
 		uint32_t value = !eval(p + 1, q);
