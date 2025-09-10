@@ -7,7 +7,7 @@
 #include <regex.h>
 
 enum {
-	NOTYPE = 256, DEC_NUMBER, EQ, HEX_NUMBER, NEQ, AND
+	NOTYPE = 256, DEC_NUMBER, EQ, HEX_NUMBER, NEQ, AND, OR
 
 	/* TODO: Add more token types */
 
@@ -25,16 +25,17 @@ static struct rule {
 
 	{" +",	NOTYPE, 0},					// spaces
 	{"0[xX][0-9a-fA-F]+", HEX_NUMBER, 0},   // hexadecimal number
-	{"\\+", '+', 2},					// plus
-	{"==", EQ, 2},						// equal
-	{"!=", NEQ, 2},				   // not equal
+	{"\\+", '+', 3},					// plus
+	{"==", EQ, 3},						// equal
+	{"!=", NEQ, 3},				   // not equal
 	{"[0-9]+", DEC_NUMBER, 0},	    	// decimal number
-	{"\\(", '(', 5},					// left parenthesis
-	{"\\)", ')', 5},					// right parenthesis
-	{"-", '-', 3},						// minus
-	{"\\*", '*', 4},					//multiply
-	{"/", '/', 4},						//divide
-	{"&&", AND, 1}                      //and
+	{"\\(", '(', 6},					// left parenthesis
+	{"\\)", ')', 6},					// right parenthesis
+	{"-", '-', 4},						// minus
+	{"\\*", '*', 5},					//multiply
+	{"/", '/', 5},						//divide
+	{"&&", AND, 2},                      //and
+	{"\\|\\|", OR, 1}                   //or
 	
 };
 
@@ -102,6 +103,7 @@ static bool make_token(char *e) {
 					case EQ:
 					case NEQ:
 					case AND:
+					case OR:
 					case DEC_NUMBER:
 					case HEX_NUMBER:
 						tokens[nr_token].type = rules[i].token_type;
@@ -233,6 +235,7 @@ uint32_t eval(int p, int q){
 			case EQ: return val1 == val2;
 			case NEQ: return val1 != val2;
 			case AND: return val1 && val2;
+			case OR: return val1 || val2;
 			default: assert(0);
 		}
 	}
