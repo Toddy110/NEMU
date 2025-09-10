@@ -120,6 +120,7 @@ static bool make_token(char *e) {
 						strncpy(tokens[nr_token].str, substr_start + 1, substr_len - 1);
 						tokens[nr_token].str[substr_len - 1] = '\0';
 						nr_token++;
+						break;
 					default: panic("please implement me");
 				}
 				break;
