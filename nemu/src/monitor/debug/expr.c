@@ -106,7 +106,6 @@ static bool make_token(char *e) {
 						break;
 					default: panic("please implement me");
 				}
-				position += substr_len;
 				break;
 			}
 		}
