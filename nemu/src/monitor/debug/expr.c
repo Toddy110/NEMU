@@ -24,6 +24,7 @@ static struct rule {
 	 */
 
 	{" +",	NOTYPE, 0},					// spaces
+	{"0[xX][0-9a-fA-F]+", HEX_NUMBER, 0},   // hexadecimal number
 	{"\\+", '+', 2},					// plus
 	{"==", EQ, 1},						// equal
 	{"[0-9]+", DEC_NUMBER, 0},	    	// decimal number
@@ -32,7 +33,6 @@ static struct rule {
 	{"-", '-', 2},						// minus
 	{"\\*", '*', 3},					//multiply
 	{"/", '/', 3},						//divide
-	{"0[xX][0-9a-fA-F]+", HEX_NUMBER, 0},   // hexadecimal number
 	
 };
 
