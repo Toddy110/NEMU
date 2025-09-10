@@ -7,7 +7,7 @@
 #include <regex.h>
 
 enum {
-	NOTYPE = 256, DEC_NUMBER, EQ, HEX_NUMBER, NEQ, AND, OR, NEG
+	NOTYPE = 256, DEC_NUMBER, EQ, HEX_NUMBER, NEQ, AND, OR, NEG, REGISTER
 
 	/* TODO: Add more token types */
 
@@ -25,6 +25,7 @@ static struct rule {
 
 	{" +",	NOTYPE, 0},					// spaces
 	{"0[xX][0-9a-fA-F]+", HEX_NUMBER, 0},   // hexadecimal number
+	{"\\$[a-zA-Z]+", REGISTER, 0},      //register
 	{"\\+", '+', 3},					// plus
 	{"==", EQ, 3},						// equal
 	{"!=", NEQ, 3},				  	    // not equal
@@ -113,6 +114,12 @@ static bool make_token(char *e) {
 						tokens[nr_token].str[substr_len] = '\0';
 						nr_token++;
 						break;
+					case REGISTER:
+						tokens[nr_token].type = rules[i].token_type;
+						tokens[nr_token].priority = rules[i].priority;
+						strncpy(tokens[nr_token].str, substr_start + 1, substr_len - 1);
+						tokens[nr_token].str[substr_len - 1] = '\0';
+						nr_token++;
 					default: panic("please implement me");
 				}
 				break;
@@ -202,6 +209,59 @@ bool check_parentheses(int p, int q){
 	return true;
 }
 
+uint32_t get_reg_val(const char *reg_name){
+	if (strlen(reg_name) == 3) {
+		int i;
+		for (i = R_EAX; i <= R_EDI; i++){
+			if (strcmp(reg_name, regsl[i]) == 0){
+				break;
+			}
+		}
+		if (i > R_EDI){
+			if (strcmp(reg_name, "eip") == 0)
+				return cpu.eip;
+			else{
+				Assert(0,"No this register\n");
+			}
+		} 
+		else{
+			return reg_l(i);
+		}
+	} 
+	else if (strlen(reg_name) == 2){
+		if (reg_name[1] == 'x' || reg_name[1] == 'p' || reg_name[1] == 'i'){
+			int i;
+			for (i = R_AX; i <= R_DI; i++){
+				if (strcmp(reg_name, regsw[i]) == 0){
+					break;
+				}
+			}
+			if (i > R_DI){
+				Assert(0, "No this register!\n");
+			}
+			return reg_w(i);
+		} 
+		else if (reg_name[1] == 'l' || reg_name[1] == 'h'){
+			int i;
+			for (i = R_AL; i <= R_BH; i++){
+				if (strcmp(reg_name, regsb[i]) == 0){
+					break;
+				}
+			}
+			if (i > R_BH){
+				Assert(0, "No this register!\n");
+			}
+			return reg_b(i);
+		} 
+		else{
+			Assert(0, "No this register!\n");
+		}
+	}
+	else {
+		Assert(0, "No this register!\n");
+	}
+}
+
 uint32_t eval(int p, int q){
 	if (p > q) {
 		assert(0);
@@ -215,6 +275,9 @@ uint32_t eval(int p, int q){
 		if (tokens[p].type == HEX_NUMBER){
 			sscanf(tokens[p].str, "%x", &value);
 			return value;
+		}
+		if (tokens[p].type == REGISTER){
+			return get_reg_val(tokens[p].str);
 		}
 	}
 	else if (check_parentheses(p, q) == true){
