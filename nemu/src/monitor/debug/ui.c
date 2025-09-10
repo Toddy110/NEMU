@@ -86,7 +86,22 @@ static int cmd_info(char *args){
 			cpu.eflags.SF, cpu.eflags.TF, cpu.eflags.IF, cpu.eflags.DF, cpu.eflags.OF);
 	}
 	else{
+		assert(0);
+	}
+	return 0;
+}
+
+static int cmd_p(char *args){
+	if (args == NULL){
 		return 0;
+	}
+	bool success = true;
+	uint32_t ans = expr(args, &success);
+	if (success){
+		printf("0x%x:\t%d\n", ans, ans);
+	}
+	else{
+		assert(0);
 	}
 	return 0;
 }
@@ -146,6 +161,7 @@ static struct {
 	{ "si", "Single step execution (si [count])", cmd_si},
 	{ "x", "Examine memory: x N EXPR (hex expr only)", cmd_x},
 	{ "info", "Display information about the program state", cmd_info},
+	{ "p", "Expression evaluation", cmd_p},
 	{ "q", "Exit NEMU", cmd_q },
 
 	/* TODO: Add more commands */
