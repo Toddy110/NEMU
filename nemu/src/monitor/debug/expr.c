@@ -223,7 +223,7 @@ uint32_t eval(int p, int q){
 	else if (tokens[p].type == '-' && is_unary_minus(p)){
 		return -eval(p + 1, q);
 	}
-	else if (tokens[p].type == '!' && tokens[p].type == NEG){
+	else if (tokens[p].type == NEG){
 		uint32_t value = !eval(p + 1, q);
 		return value;
 	}
