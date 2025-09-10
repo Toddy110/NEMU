@@ -132,9 +132,12 @@ int dominant_operator(int p, int q){
 			parentheses--;
 		}
 		else if (parentheses == 0){
-			if (tokens[i].priority <= min_priority){
-				min_priority = tokens[i].priority;
-				op_pos = i;
+			if(tokens[i].type == '+' || tokens[i].type == '-' || tokens[i].type == '*' || tokens[i].type == '/')
+			{
+				if (tokens[i].priority <= min_priority){
+					min_priority = tokens[i].priority;
+					op_pos = i;
+				}
 			}
 		}
 	}
