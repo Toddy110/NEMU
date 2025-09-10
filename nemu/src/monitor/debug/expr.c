@@ -119,6 +119,20 @@ static bool make_token(char *e) {
 	return true; 
 }
 
+bool is_unary_minus(int pos){
+	if (tokens[pos].type != '-'){
+		return false;
+	}
+	if (pos == 0){
+		return true;
+	}
+	int previous_type = tokens[pos - 1].type;
+	if (previous_type == '+' || previous_type == '-' || previous_type == '*' || previous_type == '/' || previous_type == '('){
+		return true;
+	}
+	return false;
+}
+
 int dominant_operator(int p, int q){
 	int min_priority = 20;
 	int op_pos = -1;
@@ -134,6 +148,9 @@ int dominant_operator(int p, int q){
 		else if (parentheses == 0){
 			if(tokens[i].type == '+' || tokens[i].type == '-' || tokens[i].type == '*' || tokens[i].type == '/')
 			{
+				if (tokens[i].type == '-' && is_unary_minus(i)){
+					continue;
+				}
 				if (tokens[i].priority <= min_priority){
 					min_priority = tokens[i].priority;
 					op_pos = i;
@@ -181,7 +198,9 @@ uint32_t eval(int p, int q){
 	else if (check_parentheses(p, q) == true){
 		return eval(p + 1, q - 1);
 	}
-
+	else if (tokens[p].type == '-' && is_unary_minus(p)){
+		return -eval(p + 1, q);
+	}
 	else{
 		int op = dominant_operator(p, q);
 		uint32_t val1 = eval(p,op - 1);
