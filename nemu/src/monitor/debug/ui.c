@@ -71,19 +71,12 @@ static int cmd_info(char *args){
 		return 0;
 	}
 	if (strcmp(subcmd, "r") == 0){
-		printf("eax            0x%08x\t%d\n", cpu.eax, cpu.eax);
-		printf("ecx            0x%08x\t%d\n", cpu.ecx, cpu.ecx);
-		printf("edx            0x%08x\t%d\n", cpu.edx, cpu.edx);
-		printf("ebx            0x%08x\t%d\n", cpu.ebx, cpu.ebx);
-		printf("esp            0x%08x\t%d\n", cpu.esp, cpu.esp);
-		printf("ebp            0x%08x\t%d\n", cpu.ebp, cpu.ebp);
-		printf("esi            0x%08x\t%d\n", cpu.esi, cpu.esi);
-		printf("edi            0x%08x\t%d\n", cpu.edi, cpu.edi);
-		printf("eip            0x%08x\t%d\n", cpu.eip, cpu.eip);
-		printf("eflags         0x%08x\t%d\n", cpu.eflags.val, cpu.eflags.val);
-		printf("CF=%d PF=%d AF=%d ZF=%d SF=%d TF=%d IF=%d DF=%d OF=%d\n",
-			cpu.eflags.CF, cpu.eflags.PF, cpu.eflags.AF, cpu.eflags.ZF,
-			cpu.eflags.SF, cpu.eflags.TF, cpu.eflags.IF, cpu.eflags.DF, cpu.eflags.OF);
+		int i;
+
+		for (i = R_EAX; i <= R_EDI; i++){
+			printf ("%s\t0x%08x\n", regsl[i], reg_l(i));
+ 		}
+		printf ("eip\t0x%08x\n", cpu.eip);
 	}
 	else{
 		assert(0);
