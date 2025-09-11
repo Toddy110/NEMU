@@ -133,9 +133,9 @@ static int cmd_x(char *args){
 	uint32_t current_addr = addr;
 	uint32_t i;
 	for (i = 0; i < count; i++){
-		if ((i % 4) == 0){
-			printf("0x%08x: ", current_addr);
-		}
+		// if ((i % 4) == 0){
+		// 	printf("0x%08x: ", current_addr);
+		// }
 		uint32_t word_val = swaddr_read(current_addr, 4);
 		printf("0x%08x ", word_val);
 		current_addr += 4;
