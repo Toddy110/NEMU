@@ -144,7 +144,7 @@ static int cmd_x(char *args){
 		// }
 	}
 	// if ((count % 4) != 0){
-	// 	printf("\n");
+		printf("\n");
 	// }
 	return 0;
 }
