@@ -139,13 +139,13 @@ static int cmd_x(char *args){
 		uint32_t word_val = swaddr_read(current_addr, 4);
 		printf("0x%08x ", word_val);
 		current_addr += 4;
-		if ((i % 4) == 3){
-			printf("\n");
-		}
+		// if ((i % 4) == 3){
+		// 	printf("\n");
+		// }
 	}
-	if ((count % 4) != 0){
-		printf("\n");
-	}
+	// if ((count % 4) != 0){
+	// 	printf("\n");
+	// }
 	return 0;
 }
 
