@@ -137,32 +137,33 @@ static bool make_token(char *e) {
 }
 
 bool is_unary_minus(int pos){
-	if (tokens[pos].type != '-'){
+    if (tokens[pos].type != '-'){
 		return false;
 	}
-	if (pos == 0){
+    if (pos == 0){
 		return true;
-	}
-	int previous_type = tokens[pos - 1].type;
-	if (previous_type == '+' || previous_type == '-' || previous_type == '*' || previous_type == '/' || previous_type == '('){
-		return true;
-	}
-	return false;
+	} 
+    int prev = tokens[pos - 1].type;
+    if (prev == DEC_NUMBER || prev == HEX_NUMBER || prev == REGISTER || prev == ')') {
+        return false;
+    }
+    return true;
 }
 
 bool is_dereference(int pos){
-	if (tokens[pos].type != '*'){
+    if (tokens[pos].type != '*'){ 
 		return false;
 	}
-	if (pos == 0){
+    if (pos == 0){
 		return true;
-	}
-	int previous_type = tokens[pos - 1].type;
-	if (previous_type == '+' || previous_type == '-' || previous_type == '*' || previous_type == '/' || previous_type == '('){
-		return true;
-	}
-	return false;
+	} 
+    int prev = tokens[pos - 1].type;
+    if (prev == DEC_NUMBER || prev == HEX_NUMBER || prev == REGISTER || prev == ')'){
+        return false;
+    }
+    return true;
 }
+
 
 int dominant_operator(int p, int q){
 	int min_priority = 20;
@@ -297,7 +298,7 @@ uint32_t eval(int p, int q){
 			return get_reg_val(tokens[p].str);
 		}
 	}
-	 else {
+	else {
         int op = dominant_operator(p, q);
         if (op == -1) {
             if (tokens[p].type == '-' && is_unary_minus(p)){
