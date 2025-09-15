@@ -137,33 +137,32 @@ static bool make_token(char *e) {
 }
 
 bool is_unary_minus(int pos){
-    if (tokens[pos].type != '-'){
+	if (tokens[pos].type != '-'){
 		return false;
 	}
-    if (pos == 0){
+	if (pos == 0){
 		return true;
-	} 
-    int prev = tokens[pos - 1].type;
-    if (prev == DEC_NUMBER || prev == HEX_NUMBER || prev == REGISTER || prev == ')') {
-        return false;
-    }
-    return true;
+	}
+	int previous_type = tokens[pos - 1].type;
+	if (previous_type == '+' || previous_type == '-' || previous_type == '*' || previous_type == '/' || previous_type == '('){
+		return true;
+	}
+	return false;
 }
 
 bool is_dereference(int pos){
-    if (tokens[pos].type != '*'){ 
+	if (tokens[pos].type != '*'){
 		return false;
 	}
-    if (pos == 0){
+	if (pos == 0){
 		return true;
-	} 
-    int prev = tokens[pos - 1].type;
-    if (prev == DEC_NUMBER || prev == HEX_NUMBER || prev == REGISTER || prev == ')'){
-        return false;
-    }
-    return true;
+	}
+	int previous_type = tokens[pos - 1].type;
+	if (previous_type == '+' || previous_type == '-' || previous_type == '*' || previous_type == '/' || previous_type == '('){
+		return true;
+	}
+	return false;
 }
-
 
 int dominant_operator(int p, int q){
 	int min_priority = 20;
@@ -178,16 +177,6 @@ int dominant_operator(int p, int q){
 			parentheses--;
 		}
 		else if (parentheses == 0){
-			// if(tokens[i].type == '+' || tokens[i].type == '-' || tokens[i].type == '*' || tokens[i].type == '/')
-			// {
-			// 	if (tokens[i].type == '-' && is_unary_minus(i)){
-			// 		continue;
-			// 	}
-			// 	if (tokens[i].priority <= min_priority){
-			// 		min_priority = tokens[i].priority;
-			// 		op_pos = i;
-			// 	}
-			// }
 			if(tokens[i].priority >= 1){
 				if (tokens[i].type == '-' && is_unary_minus(i)){
 					continue;
@@ -195,12 +184,18 @@ int dominant_operator(int p, int q){
 				if (tokens[i].type == '*' && is_dereference(i)){
 					continue;
 				}
-				if (tokens[i].priority <= min_priority){
+				if (tokens[i].priority <= min_priority && tokens[i].priority >= 1){
 					min_priority = tokens[i].priority;
 					op_pos = i;
 				}
 			}
 		}
+	}
+	if (op_pos == -1){
+		if ((tokens[p].type == '-' && is_unary_minus(p)) || (tokens[p].type == '*' && is_dereference(p)) || (tokens[p].type == NEG)){
+			return p;
+		}
+		assert(0);
 	}
 	return op_pos;
 }
@@ -298,37 +293,38 @@ uint32_t eval(int p, int q){
 			return get_reg_val(tokens[p].str);
 		}
 	}
-	else {
-        int op = dominant_operator(p, q);
-        if (op == -1) {
-            if (tokens[p].type == '-' && is_unary_minus(p)){
-                return -eval(p + 1, q);
-            } else if (tokens[p].type == '*' && is_dereference(p)){
-                return swaddr_read(eval(p + 1, q), 4);
-            } else if (tokens[p].type == NEG){
-                return !eval(p + 1, q);
-            } else {
-                assert(0);
-            }
-        }
+	else if (check_parentheses(p, q) == true){
+		return eval(p + 1, q - 1);
+	}
+	else if (tokens[p].type == '-' && is_unary_minus(p)){
+		return -eval(p + 1, q);
+	}
+	else if (tokens[p].type == '*' && is_dereference(p)){
+		return swaddr_read(eval(p + 1, q), 4);
+	}
+	else if (tokens[p].type == NEG){
+		uint32_t value = !eval(p + 1, q);
+		return value;
+	}
+	else{
+		int op = dominant_operator(p, q);
+		uint32_t val1 = eval(p,op - 1);
+		uint32_t val2 = eval(op + 1, q);
 
-        uint32_t val1 = eval(p, op - 1);
-        uint32_t val2 = eval(op + 1, q);
-
-        switch (tokens[op].type){
-            case '+': return val1 + val2;
-            case '-': return val1 - val2;
-            case '*': return val1 * val2;
-            case '/': return val1 / val2;
-            case EQ: return val1 == val2;
-            case NEQ: return val1 != val2;
-            case AND: return val1 && val2;
-            case OR: return val1 || val2;
-            default: assert(0);
-        }
-    }
-    assert (1);
-    return 0;
+		switch (tokens[op].type){
+			case '+': return val1 + val2;
+			case '-': return val1 - val2;
+			case '*': return val1 * val2;
+			case '/': return val1 / val2;
+			case EQ: return val1 == val2;
+			case NEQ: return val1 != val2;
+			case AND: return val1 && val2;
+			case OR: return val1 || val2;
+			default: assert(0);
+		}
+	}
+	assert (1);
+	return 0;
 }
 
 uint32_t expr(char *e, bool *success) {
