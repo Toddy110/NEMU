@@ -149,34 +149,6 @@ static bool make_token(char *e) {
 	return true; 
 }
 
-bool is_unary_minus(int pos){
-	if (tokens[pos].type != '-'){
-		return false;
-	}
-	if (pos == 0){
-		return true;
-	}
-	int previous_type = tokens[pos - 1].type;
-	if (previous_type == '+' || previous_type == '-' || previous_type == '*' || previous_type == '/' || previous_type == '('){
-		return true;
-	}
-	return false;
-}
-
-bool is_dereference(int pos){
-	if (tokens[pos].type != '*'){
-		return false;
-	}
-	if (pos == 0){
-		return true;
-	}
-	int previous_type = tokens[pos - 1].type;
-	if (previous_type == '+' || previous_type == '-' || previous_type == '*' || previous_type == '/' || previous_type == '('){
-		return true;
-	}
-	return false;
-}
-
 int dominant_operator(int p, int q){
 	int min_priority = 20;
 	int op_pos = -1;
