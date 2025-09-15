@@ -78,6 +78,9 @@ static int cmd_info(char *args){
  		}
 		printf ("eip\t0x%08x\n", cpu.eip);
 	}
+	else if (strcmp(subcmd, "w") == 0){
+		print_watchpoints();
+	}
 	else{
 		assert(0);
 	}
@@ -143,6 +146,8 @@ static int cmd_x(char *args){
 }
 
 static int cmd_help(char *args);
+static int cmd_w(char *args);
+static int cmd_d(char *args);
 
 static struct {
 	char *name;
@@ -155,6 +160,8 @@ static struct {
 	{ "x", "Examine memory: x N EXPR (hex expr only)", cmd_x},
 	{ "info", "Display information about the program state", cmd_info},
 	{ "p", "Expression evaluation", cmd_p},
+	{ "w", "Set watchpoint: w EXPR", cmd_w},
+	{ "d", "Delete watchpoint: d NUM", cmd_d},
 	{ "q", "Exit NEMU", cmd_q },
 
 	/* TODO: Add more commands */
@@ -183,6 +190,26 @@ static int cmd_help(char *args) {
 		}
 		printf("Unknown command '%s'\n", arg);
 	}
+	return 0;
+}
+
+static int cmd_w(char *args) {
+	if (args == NULL) {
+		return 0;
+	}
+	create_watchpoint(args);
+	return 0;
+}
+
+static int cmd_d(char *args) {
+	if (args == NULL) {
+		return 0;
+	}
+	int no = -1;
+	if (sscanf(args, "%d", &no) != 1 || no < 0) {
+		return 0;
+	}
+	delete_watchpoint(no);
 	return 0;
 }
 
