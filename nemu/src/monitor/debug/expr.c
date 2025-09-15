@@ -7,7 +7,7 @@
 #include <regex.h>
 
 enum {
-	NOTYPE = 256, DEC_NUMBER, EQ, HEX_NUMBER, NEQ, AND, OR, NEG, REGISTER
+	NOTYPE = 256, DEC_NUMBER, EQ, HEX_NUMBER, NEQ, AND, OR, NOT, UMINUS, REGISTER, DEREF
 
 	/* TODO: Add more token types */
 
@@ -29,7 +29,7 @@ static struct rule {
 	{"\\+", '+', 3},					// plus
 	{"==", EQ, 3},						// equal
 	{"!=", NEQ, 3},				  	    // not equal
-	{"!", NEG, 6},    					// logical NOT
+	{"!", NOT, 6},    					// logical NOT
 	{"[0-9]+", DEC_NUMBER, 0},	    	// decimal number
 	{"\\(", '(', 7},					// left parenthesis
 	{"\\)", ')', 7},					// right parenthesis
@@ -105,7 +105,7 @@ static bool make_token(char *e) {
 					case NEQ:
 					case AND:
 					case OR:
-					case NEG:
+					case NOT:
 					case DEC_NUMBER:
 					case HEX_NUMBER:
 						tokens[nr_token].type = rules[i].token_type;
@@ -132,7 +132,20 @@ static bool make_token(char *e) {
 			return false;
 		}
 	}
-
+	for (i = 0; i < nr_token; i++){
+		if (tokens[i].type == '-'){
+			if (i == 0 || (tokens[i - 1].type != DEC_NUMBER && tokens[i - 1].type != HEX_NUMBER && tokens[i - 1].type != REGISTER && tokens[i - 1].type != ')')){
+				tokens[i].type = UMINUS;
+				tokens[i].priority = 6;
+			}
+		}
+		else if (tokens[i].type == '*'){
+			if (i == 0 || (tokens[i - 1].type != DEC_NUMBER && tokens[i - 1].type != HEX_NUMBER && tokens[i - 1].type != REGISTER && tokens[i - 1].type != ')')){
+				tokens[i].type = DEREF;
+				tokens[i].priority = 6;
+			}
+		}
+	}
 	return true; 
 }
 
@@ -177,14 +190,14 @@ int dominant_operator(int p, int q){
 			parentheses--;
 		}
 		else if (parentheses == 0){
-			if ((tokens[i].type == '-' && is_unary_minus(i)) || (tokens[i].type == '*' && is_dereference(i)) || tokens[i].type == NEG){
+			if (tokens[i].type == UMINUS || tokens[i].type == DEREF){
 				continue;
 			}
 			if (tokens[i].priority >= 1){
 				if (op_pos == -1 || tokens[i].priority <= min_priority){
 					min_priority = tokens[i].priority;
 					op_pos = i;
-				} 
+				}
 			}
 		}
 	}
@@ -287,13 +300,13 @@ uint32_t eval(int p, int q){
 	else if (check_parentheses(p, q) == true){
 		return eval(p + 1, q - 1);
 	}
-	else if (tokens[p].type == '-' && is_unary_minus(p)){
+	else if (tokens[p].type == UMINUS){
 		return -eval(p + 1, q);
 	}
-	else if (tokens[p].type == '*' && is_dereference(p)){
+	else if (tokens[p].type == DEREF){
 		return swaddr_read(eval(p + 1, q), 4);
 	}
-	else if (tokens[p].type == NEG){
+	else if (tokens[p].type == '!'){
 		uint32_t value = !eval(p + 1, q);
 		return value;
 	}
