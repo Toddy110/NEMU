@@ -39,23 +39,40 @@ WP* new_wp(){
 }
 
 void free_wp(WP *wp){
-	WP *current_wp = head;
-	WP *prev_wp = NULL;
-	while (current_wp != NULL && current_wp != wp){
-		prev_wp = current_wp;
-		current_wp = current_wp->next;
-	}
+	WP *f_wp, *current_wp;
+	current_wp = free_;
 	if (current_wp == NULL){
+		free_ = wp;
+		free_->next = NULL;
+	}
+	else{
+		while (current_wp->next != NULL){
+			current_wp = current_wp->next;
+		}
+		current_wp->next = wp;
+	}
+	f_wp = head;
+	if (head == NULL){
 		assert(0);
 	}
-	if (prev_wp == NULL){
+	if (head->NO == wp->NO){
 		head = head->next;
 	}
 	else{
-		prev_wp->next = current_wp->next;
+		while (f_wp->next != NULL && f_wp->next->NO != wp->NO){
+			f_wp = f_wp->next;
+		}
+		if (f_wp->next == NULL && f_wp->NO != wp->NO){
+			assert(0);
+		}
+		else if (f_wp->next->NO == wp->NO){
+			f_wp->next = f_wp->next->next;
+		}
+		else{
+			assert(0);
+		}
 	}
-	wp->next = free_;
-	free_ = wp;
+	wp->next = NULL;
 }
 
 
