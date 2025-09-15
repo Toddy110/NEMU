@@ -297,40 +297,35 @@ uint32_t eval(int p, int q){
 			return get_reg_val(tokens[p].str);
 		}
 	}
-	else if (check_parentheses(p, q) == true){
+	if (check_parentheses(p, q) == true){
 		return eval(p + 1, q - 1);
 	}
-	else if (tokens[p].type == UMINUS){
-		return -eval(p + 1, q);
-	}
-	else if (tokens[p].type == DEREF){
-		return swaddr_read(eval(p + 1, q), 4);
-	}
-	else if (tokens[p].type == '!'){
-		uint32_t value = !eval(p + 1, q);
-		return value;
-	}
-	else{
-		int op = dominant_operator(p, q);
-		if (op == -1){
-			assert(0);
+	int op = dominant_operator(p, q);
+	if (op == -1){
+		if (tokens[p].type == UMINUS){
+			return -eval(p + 1, q);
 		}
-		uint32_t val1 = eval(p,op - 1);
-		uint32_t val2 = eval(op + 1, q);
-
-		switch (tokens[op].type){
-			case '+': return val1 + val2;
-			case '-': return val1 - val2;
-			case '*': return val1 * val2;
-			case '/': return val1 / val2;
-			case EQ: return val1 == val2;
-			case NEQ: return val1 != val2;
-			case AND: return val1 && val2;
-			case OR: return val1 || val2;
-			default: assert(0);
+		if (tokens[p].type == DEREF){
+			return swaddr_read(eval(p + 1, q), 4);
 		}
+		if (tokens[p].type == NOT){
+			return !eval(p + 1, q);
+		}
+		assert(0);
 	}
-	assert(0);
+	uint32_t val1 = eval(p, op - 1);
+	uint32_t val2 = eval(op + 1, q);
+	switch (tokens[op].type){
+		case '+': return val1 + val2;
+		case '-': return val1 - val2;
+		case '*': return val1 * val2;
+		case '/': return val1 / val2;
+		case EQ: return val1 == val2;
+		case NEQ: return val1 != val2;	
+		case AND: return val1 && val2;
+		case OR: return val1 || val2;
+		default: assert(0);
+	}
 	return 0;
 }
 
