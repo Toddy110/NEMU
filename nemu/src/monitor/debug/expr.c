@@ -177,25 +177,16 @@ int dominant_operator(int p, int q){
 			parentheses--;
 		}
 		else if (parentheses == 0){
-			if(tokens[i].priority >= 1){
-				if (tokens[i].type == '-' && is_unary_minus(i)){
-					continue;
-				}
-				if (tokens[i].type == '*' && is_dereference(i)){
-					continue;
-				}
-				if (tokens[i].priority <= min_priority && tokens[i].priority >= 1){
+			if ((tokens[i].type == '-' && is_unary_minus(i)) || (tokens[i].type == '*' && is_dereference(i)) || tokens[i].type == NEG){
+				continue;
+			}
+			if (tokens[i].priority >= 1){
+				if (op_pos == -1 || tokens[i].priority <= min_priority){
 					min_priority = tokens[i].priority;
 					op_pos = i;
-				}
+				} 
 			}
 		}
-	}
-	if (op_pos == -1){
-		if ((tokens[p].type == '-' && is_unary_minus(p)) || (tokens[p].type == '*' && is_dereference(p)) || (tokens[p].type == NEG)){
-			return p;
-		}
-		assert(0);
 	}
 	return op_pos;
 }
@@ -308,6 +299,9 @@ uint32_t eval(int p, int q){
 	}
 	else{
 		int op = dominant_operator(p, q);
+		if (op == -1){
+			assert(0);
+		}
 		uint32_t val1 = eval(p,op - 1);
 		uint32_t val2 = eval(op + 1, q);
 
@@ -323,7 +317,7 @@ uint32_t eval(int p, int q){
 			default: assert(0);
 		}
 	}
-	assert (1);
+	assert(0);
 	return 0;
 }
 
