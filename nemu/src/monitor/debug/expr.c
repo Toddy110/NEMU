@@ -26,7 +26,7 @@ static struct rule {
 	{" +",	NOTYPE, 0},					// spaces
 	{"0[xX][0-9a-fA-F]+", HEX_NUMBER, 0},   // hexadecimal number
 	{"\\$[a-zA-Z]+", REGISTER, 0},      //register
-	{"\\+", '+', 3},					// plus
+	{"\\+", '+', 4},					// plus
 	{"==", EQ, 3},						// equal
 	{"!=", NEQ, 3},				  	    // not equal
 	{"!", NOT, 6},    					// logical NOT
@@ -162,7 +162,7 @@ int dominant_operator(int p, int q){
 			parentheses--;
 		}
 		else if (parentheses == 0){
-			if (tokens[i].type == UMINUS || tokens[i].type == DEREF){
+			if (tokens[i].type == UMINUS || tokens[i].type == DEREF || tokens[i].type == NOT){
 				continue;
 			}
 			if (tokens[i].priority >= 1){
