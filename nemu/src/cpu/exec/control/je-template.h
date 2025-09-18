@@ -9,6 +9,6 @@ static void do_execute() {
 	print_asm(str(instr) " %x", cpu.eip + 1 + DATA_BYTE);
 }
 
-make_instr_helper(si)
+make_instr_helper(i)
 
 #include "cpu/exec/template-end.h"
