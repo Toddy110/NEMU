@@ -52,11 +52,11 @@ static int cmd_si(char *args) {
 			}
 		}
 	}
-	if (step_count <= 100){
+	if (step_count < 10){
 		cpu_exec(step_count);
 	}
 	else{
-		cpu_exec(100);
+		cpu_exec(9);
 	}
 	return 0;
 }
@@ -71,33 +71,22 @@ static int cmd_info(char *args){
 		return 0;
 	}
 	if (strcmp(subcmd, "r") == 0){
-		int i;
-
-		for (i = R_EAX; i <= R_EDI; i++){
-			printf ("%s\t0x%08x\n", regsl[i], reg_l(i));
- 		}
-		printf ("eip\t0x%08x\n", cpu.eip);
-	}
-	else if (strcmp(subcmd, "w") == 0){
-		print_watchpoints();
+		printf("eax            0x%08x\t%d\n", cpu.eax, cpu.eax);
+		printf("ecx            0x%08x\t%d\n", cpu.ecx, cpu.ecx);
+		printf("edx            0x%08x\t%d\n", cpu.edx, cpu.edx);
+		printf("ebx            0x%08x\t%d\n", cpu.ebx, cpu.ebx);
+		printf("esp            0x%08x\t%d\n", cpu.esp, cpu.esp);
+		printf("ebp            0x%08x\t%d\n", cpu.ebp, cpu.ebp);
+		printf("esi            0x%08x\t%d\n", cpu.esi, cpu.esi);
+		printf("edi            0x%08x\t%d\n", cpu.edi, cpu.edi);
+		printf("eip            0x%08x\t%d\n", cpu.eip, cpu.eip);
+		printf("eflags         0x%08x\t%d\n", cpu.eflags.val, cpu.eflags.val);
+		printf("CF=%d PF=%d AF=%d ZF=%d SF=%d TF=%d IF=%d DF=%d OF=%d\n",
+			cpu.eflags.CF, cpu.eflags.PF, cpu.eflags.AF, cpu.eflags.ZF,
+			cpu.eflags.SF, cpu.eflags.TF, cpu.eflags.IF, cpu.eflags.DF, cpu.eflags.OF);
 	}
 	else{
-		assert(0);
-	}
-	return 0;
-}
-
-static int cmd_p(char *args){
-	if (args == NULL){
 		return 0;
-	}
-	bool success = true;
-	uint32_t ans = expr(args, &success);
-	if (success){
-		printf("0x%x:\t%d\n", ans, ans);
-	}
-	else{
-		assert(0);
 	}
 	return 0;
 }
@@ -129,25 +118,23 @@ static int cmd_x(char *args){
 	uint32_t current_addr = addr;
 	uint32_t i;
 	for (i = 0; i < count; i++){
-		// if ((i % 4) == 0){
-		// 	printf("0x%08x: ", current_addr);
-		// }
+		if ((i % 4) == 0){
+			printf("0x%08x: ", current_addr);
+		}
 		uint32_t word_val = swaddr_read(current_addr, 4);
 		printf("0x%08x ", word_val);
 		current_addr += 4;
-		// if ((i % 4) == 3){
-		// 	printf("\n");
-		// }
+		if ((i % 4) == 3){
+			printf("\n");
+		}
 	}
-	// if ((count % 4) != 0){
+	if ((count % 4) != 0){
 		printf("\n");
-	// }
+	}
 	return 0;
 }
 
 static int cmd_help(char *args);
-static int cmd_w(char *args);
-static int cmd_d(char *args);
 
 static struct {
 	char *name;
@@ -159,9 +146,6 @@ static struct {
 	{ "si", "Single step execution (si [count])", cmd_si},
 	{ "x", "Examine memory: x N EXPR (hex expr only)", cmd_x},
 	{ "info", "Display information about the program state", cmd_info},
-	{ "p", "Expression evaluation", cmd_p},
-	{ "w", "Set watchpoint: w EXPR", cmd_w},
-	{ "d", "Delete watchpoint: d NUM", cmd_d},
 	{ "q", "Exit NEMU", cmd_q },
 
 	/* TODO: Add more commands */
@@ -190,26 +174,6 @@ static int cmd_help(char *args) {
 		}
 		printf("Unknown command '%s'\n", arg);
 	}
-	return 0;
-}
-
-static int cmd_w(char *args) {
-	if (args == NULL) {
-		return 0;
-	}
-	create_watchpoint(args);
-	return 0;
-}
-
-static int cmd_d(char *args) {
-	if (args == NULL) {
-		return 0;
-	}
-	int no = -1;
-	if (sscanf(args, "%d", &no) != 1 || no < 0) {
-		return 0;
-	}
-	delete_watchpoint(no);
 	return 0;
 }
 
