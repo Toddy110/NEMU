@@ -8,7 +8,7 @@ static void do_execute() {
     cpu.esp -= 4;
     swaddr_write(cpu.esp, 4, return_addr);
     
-    cpu.eip += (DATA_TYPE_S)op_src->val;
+    cpu.eip += (DATA_TYPE_S)op_src->val - 1 - DATA_BYTE;
     
     print_asm("call 0x%x", cpu.eip + 1 + DATA_BYTE);
 }
