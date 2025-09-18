@@ -3,14 +3,12 @@
 #define instr call
 
 static void do_execute() {
-    swaddr_t return_addr = cpu.eip + 1 + DATA_BYTE;
-    
+    int instr_len = 1 + DATA_BYTE;
+    swaddr_t return_addr = cpu.eip + instr_len;
     cpu.esp -= 4;
     swaddr_write(cpu.esp, 4, return_addr);
-    
-    cpu.eip += (DATA_TYPE_S)op_src->val - 1 - DATA_BYTE;
-    
-    print_asm("call 0x%x", cpu.eip + 1 + DATA_BYTE);
+    cpu.eip = cpu.eip += (DATA_TYPE_S)op_src->val - instr_len;
+    print_asm("call 0x%x", return_addr + (DATA_TYPE_S)op_src->val);
 }
 
 make_helper(concat(call_i_, SUFFIX)) {
