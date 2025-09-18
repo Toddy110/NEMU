@@ -116,7 +116,8 @@ static int cmd_x(char *args){
 		return 0;
 	}
 	uint32_t current_addr = addr;
-	for (uint32_t i = 0; i < count; i++){
+	uint32_t i;
+	for (i = 0; i < count; i++){
 		if ((i % 4) == 0){
 			printf("0x%08x: ", current_addr);
 		}
