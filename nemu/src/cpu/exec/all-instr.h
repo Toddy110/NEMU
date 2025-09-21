@@ -31,6 +31,7 @@
 #include "control/jl.h"
 #include "control/js.h"
 #include "control/jns.h"
+#include "control/jge.h"
 #include "control/ret.h"
 
 #include "logic/and.h"
