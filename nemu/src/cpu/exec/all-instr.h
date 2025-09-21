@@ -27,6 +27,7 @@
 #include "control/je.h"
 #include "control/jne.h"
 #include "control/jle.h"
+#include "control/jg.h"
 #include "control/ret.h"
 
 #include "logic/and.h"
