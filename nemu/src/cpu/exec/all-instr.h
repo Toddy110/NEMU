@@ -35,6 +35,7 @@
 #include "control/ja.h"
 #include "control/jb.h"
 #include "control/jae.h"
+#include "control/jecxz.h"
 #include "control/ret.h"
 
 #include "logic/and.h"
@@ -47,6 +48,9 @@
 #include "logic/shrd.h"
 #include "logic/test.h"
 #include "logic/setne.h"
+#include "logic/sete.h"
+#include "logic/seta.h"
+#include "logic/setge.h"
 
 #include "string/rep.h"
 #include "string/scas.h"
