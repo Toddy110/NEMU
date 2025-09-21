@@ -21,7 +21,7 @@ make_helper(concat(decode_i_, SUFFIX)) {
 	return DATA_BYTE;
 }
 
-#if DATA_BYTE == 1 || DATA_BYTE == 2 || DATA_BYTE == 4
+#if DATA_BYTE == 1  || DATA_BYTE == 4
 /* sign immediate */
 make_helper(concat(decode_si_, SUFFIX)) {
 	op_src->type = OP_TYPE_IMM;
@@ -32,14 +32,8 @@ make_helper(concat(decode_si_, SUFFIX)) {
 	 *
 	op_src->simm = ???
 	 */
-	op_src->simm = instr_fetch(eip, DATA_BYTE);
+	op_src-> simm = (DATA_TYPE_S)instr_fetch(eip, 1);
 
-	if (DATA_BYTE == 1){
-		op_src->simm = (int32_t)(int8_t)op_src->simm;
-	}
-	else if (DATA_BYTE == 2){
-		op_src->simm = (int32_t)(int16_t)op_src->simm;
-	}
 	op_src->val = op_src->simm;
 
 #ifdef DEBUG

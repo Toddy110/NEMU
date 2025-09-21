@@ -3,10 +3,10 @@
 #define instr jbe
 
 static void do_execute() {
+	print_asm(str(instr) " %x", cpu.eip + 1 + DATA_BYTE + cpu.eip + (DATA_TYPE_S)op_src->val);
 	if (cpu.eflags.ZF || cpu.eflags.CF) {
 		cpu.eip += (DATA_TYPE_S)op_src->val;
 	}
-	print_asm(str(instr) " %x", cpu.eip + 1 + DATA_BYTE);
 }
 
 
