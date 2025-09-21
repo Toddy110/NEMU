@@ -29,6 +29,7 @@
 #include "control/jle.h"
 #include "control/jg.h"
 #include "control/jl.h"
+#include "control/js.h"
 #include "control/ret.h"
 
 #include "logic/and.h"
