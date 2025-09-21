@@ -4,4 +4,6 @@
 make_helper(jbe_si_b);
 make_helper(jbe_si_l);
 
+make_helper(jbe_i_b);
+make_helper(jbe_i_l);   
 #endif
