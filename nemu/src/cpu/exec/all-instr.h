@@ -33,6 +33,8 @@
 #include "control/jns.h"
 #include "control/jge.h"
 #include "control/ja.h"
+#include "control/jb.h"
+#include "control/jae.h"
 #include "control/ret.h"
 
 #include "logic/and.h"
