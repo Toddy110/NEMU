@@ -22,6 +22,7 @@
 
 #include "control/jmp.h"
 #include "control/call.h"
+#include "control/jbe.h"
 #include "control/je.h"
 #include "control/ret.h"
 
