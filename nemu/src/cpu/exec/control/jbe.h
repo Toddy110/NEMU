@@ -2,8 +2,5 @@
 #define __JBE_H__
 
 make_helper(jbe_si_b);
-make_helper(jbe_si_l);
-
-make_helper(jbe_i_b);
-make_helper(jbe_i_l);   
+make_helper(jbe_i_v);
 #endif

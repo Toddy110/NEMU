@@ -9,7 +9,11 @@ static void do_execute() {
 	print_asm(str(instr) " %x", cpu.eip + 1 + DATA_BYTE);
 }
 
+#if DATA_BYTE == 1
 make_instr_helper(si)
+#endif
+#if DATA_BYTE == 2 || DATA_BYTE == 4
 make_instr_helper(i)
+#endif
 
 #include "cpu/exec/template-end.h"
