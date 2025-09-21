@@ -9,7 +9,6 @@ static void do_execute(){
     else{
         OPERAND_W(op_dest, 0);
     }
-    print_asm_template1();
 }
 
 make_instr_helper(rm)
