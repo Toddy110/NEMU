@@ -17,6 +17,10 @@ make_helper(concat(push_r_, SUFFIX)) {
     return 1;
 }
 
-
+make_helper(concat(push_rm_, SUFFIX)){
+    int len = concat(decode_rm_, SUFFIX)(eip + 1);
+    do_execute();
+    return len + 1;
+}
 
 #include "cpu/exec/template-end.h"
