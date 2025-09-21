@@ -17,6 +17,7 @@ make_helper(concat(push_i_, SUFFIX)){
     return len + 1;
 }
 
+
 #if DATA_BYTE == 4 || DATA_BYTE == 2
 make_helper(concat(push_r_, SUFFIX)) {
     int reg_code = ops_decoded.opcode & 0x7;
