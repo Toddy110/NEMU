@@ -2,14 +2,11 @@
 
 #define instr setne
 
-static void do_execute(){
-    if (!cpu.eflags.ZF){
-        OPERAND_W(op_src, 1);
-    }
-    else{
-        OPERAND_W(op_src, 0);
-    }
-    print_asm_template1();
+static void do_execute() {
+    /* r/m8 destination already decoded by decode_rm_b */
+    uint8_t v = (!cpu.eflags.ZF) ? 1 : 0;
+    OPERAND_W(op_dest, v);
+    print_asm(str(instr) " %s", op_dest->str);
 }
 
 make_instr_helper(rm)
