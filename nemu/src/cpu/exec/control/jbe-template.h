@@ -10,7 +10,7 @@ static void do_execute() {
 }
 
 
-make_instr_helper(si)
+make_instr_helper(i)
 #if DATA_BYTE == 4
 make_helper(jbe_rm_l) {
 	int len = decode_rm_l(eip + 1);
