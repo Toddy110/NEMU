@@ -1,7 +1,4 @@
 #include "FLOAT.h"
-#include <stdint.h>
-#include <string.h>
-
 
 FLOAT F_mul_F(FLOAT a, FLOAT b) {
 	int64_t prod = (int64_t)a * (int64_t)b;
@@ -44,7 +41,7 @@ FLOAT f2F(float a) {
 	uint32_t temp;
 	memcpy(&temp, &a, sizeof(a));
 	uint32_t sign = (temp >> 31) & 0x1;
-	int exp = (int)((temp >> 23) & 0xff);
+	uint32_t exp = (temp >> 23) & 0xff;
 	uint32_t frac = temp & 0x7fffff;
 
 	if (exp == 0) {
@@ -61,21 +58,11 @@ FLOAT f2F(float a) {
 	frac = frac | 0x800000;
 	exp -= (127 + 23 - 16);
 	if (exp >= 0){
-		if (exp >= 31) {
-			frac = 0; 
-		} else {
-			frac = frac << exp;
-		}
+		frac = frac << exp;
 	}
 	else{
-		int sh = -exp;
-		if (sh >= 31) {
-			frac = 0;
-		} else {
-			frac = frac >> sh;
-		}
+		frac = frac >> (-exp);
 	}
-
 	if (sign){
 		return -frac;
 	}
