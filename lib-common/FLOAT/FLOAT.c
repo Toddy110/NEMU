@@ -1,4 +1,6 @@
 #include "FLOAT.h"
+#include <string.h>
+#include <stdint.h>
 
 FLOAT F_mul_F(FLOAT a, FLOAT b) {
 	int64_t prod = (int64_t)a * (int64_t)b;
@@ -63,7 +65,7 @@ FLOAT f2F(float a) {
 	else{
 		frac = frac >> (-exp);
 	}
-	
+
 	if (sign){
 		return -frac;
 	}
