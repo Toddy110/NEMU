@@ -1,8 +1,7 @@
 #include "FLOAT.h"
 #include <stdint.h>
 #include <string.h>
-#include <string.h>
-#include <stdint.h>
+
 
 FLOAT F_mul_F(FLOAT a, FLOAT b) {
 	int64_t prod = (int64_t)a * (int64_t)b;
