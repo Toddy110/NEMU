@@ -10,7 +10,7 @@ $(FLOAT): $(FLOAT_A_OBJ)
 
 # TODO: complete the following rules
 
-FLAG_CFLAGS := -m32 -fno-builtin -I$(LIB_COMMON_DIR) -O2 -march=i386
+FLOAT_CFLAGS := -m32 -fno-builtin -I$(LIB_COMMON_DIR) -O2 -march=i386
 
 $(FLOAT_O):lib-common/FLOAT/FLOAT.c
 	mkdir -p $(@D)

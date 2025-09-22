@@ -63,6 +63,7 @@ FLOAT f2F(float a) {
 	else{
 		frac = frac >> (-exp);
 	}
+	
 	if (sign){
 		return -frac;
 	}
