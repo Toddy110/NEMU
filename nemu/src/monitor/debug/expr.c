@@ -5,9 +5,12 @@
  */
 #include <sys/types.h>
 #include <regex.h>
+#include <string.h>
+
+extern uint32_t get_sym_val(char *syc, bool *success);
 
 enum {
-	NOTYPE = 256, DEC_NUMBER, EQ, HEX_NUMBER, NEQ, AND, OR, NOT, UMINUS, REGISTER, DEREF
+	NOTYPE = 256, DEC_NUMBER, EQ, HEX_NUMBER, NEQ, AND, OR, NOT, UMINUS, REGISTER, DEREF, VARIABLE
 
 	/* TODO: Add more token types */
 
@@ -37,7 +40,8 @@ static struct rule {
 	{"\\*", '*', 5},					//multiply
 	{"/", '/', 5},						//divide
 	{"&&", AND, 2},                      //and
-	{"\\|\\|", OR, 1}                   //or
+	{"\\|\\|", OR, 1},                   //or
+	{"[a_zA_Z_]{1, 31}", VARIABLE, 0} 	//variable
 };
 
 #define NR_REGEX (sizeof(rules) / sizeof(rules[0]) )
@@ -108,6 +112,7 @@ static bool make_token(char *e) {
 					case NOT:
 					case DEC_NUMBER:
 					case HEX_NUMBER:
+					case VARIABLE:
 						tokens[nr_token].type = rules[i].token_type;
 						tokens[nr_token].priority = rules[i].priority;
 						strncpy(tokens[nr_token].str, substr_start, substr_len);
@@ -134,13 +139,13 @@ static bool make_token(char *e) {
 	}
 	for (i = 0; i < nr_token; i++){
 		if (tokens[i].type == '-'){
-			if (i == 0 || (tokens[i - 1].type != DEC_NUMBER && tokens[i - 1].type != HEX_NUMBER && tokens[i - 1].type != REGISTER && tokens[i - 1].type != ')')){
+			if (i == 0 || (tokens[i - 1].type != DEC_NUMBER && tokens[i - 1].type != HEX_NUMBER && tokens[i - 1].type != REGISTER && tokens[i - 1].type != VARIABLE && tokens[i - 1].type != ')')){
 				tokens[i].type = UMINUS;
 				tokens[i].priority = 6;
 			}
 		}
 		else if (tokens[i].type == '*'){
-			if (i == 0 || (tokens[i - 1].type != DEC_NUMBER && tokens[i - 1].type != HEX_NUMBER && tokens[i - 1].type != REGISTER && tokens[i - 1].type != ')')){
+			if (i == 0 || (tokens[i - 1].type != DEC_NUMBER && tokens[i - 1].type != HEX_NUMBER && tokens[i - 1].type != REGISTER && tokens[i - 1].type != VARIABLE && tokens[i - 1].type != ')')){
 				tokens[i].type = DEREF;
 				tokens[i].priority = 6;
 			}
@@ -267,6 +272,17 @@ uint32_t eval(int p, int q){
 		}
 		if (tokens[p].type == REGISTER){
 			return get_reg_val(tokens[p].str);
+		}
+		if (tokens[p].type == VARIABLE){
+			bool success = true;
+			value = get_sym_val(tokens[p].str, &success);
+			if (success){
+				return value;
+			}
+			else{
+				printf("No this variable!\n");
+				assert(0);
+			}
 		}
 	}
 	if (check_parentheses(p, q) == true){
