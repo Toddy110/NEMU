@@ -40,8 +40,8 @@ static struct rule {
 	{"\\*", '*', 5},					//multiply
 	{"/", '/', 5},						//divide
 	{"&&", AND, 2},                      //and
-	{"\\|\\|", OR, 1},                   //or
-	{"[a_zA_Z_]{1,31}", VARIABLE, 0} 	//variable
+	{"\\|\\|", OR, 1},                  //or
+	{"[_a-zA-Z][_a-zA-Z0-9]{0,30}", VARIABLE, 0} 	//variable
 };
 
 #define NR_REGEX (sizeof(rules) / sizeof(rules[0]) )
