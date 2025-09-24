@@ -44,7 +44,7 @@ FLOAT f2F(float a) {
 	uint32_t temp;
 	memcpy(&temp, &a, sizeof(a));
 	uint32_t sign = (temp >> 31) & 0x1;
-	uint32_t exp = (temp >> 23) & 0xff;
+	int exp = (int)((temp >> 23) & 0xff);
 	uint32_t frac = temp & 0x7fffff;
 
 	if (exp == 0) {
@@ -61,10 +61,19 @@ FLOAT f2F(float a) {
 	frac = frac | 0x800000;
 	exp -= (127 + 23 - 16);
 	if (exp >= 0){
-		frac = frac << exp;
+		if (exp >= 31) {
+			frac = 0; // overflow to zero in fixed range
+		} else {
+			frac = frac << exp;
+		}
 	}
 	else{
-		frac = frac >> (-exp);
+		int sh = -exp;
+		if (sh >= 31) {
+			frac = 0;
+		} else {
+			frac = frac >> sh;
+		}
 	}
 
 	if (sign){
