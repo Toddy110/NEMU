@@ -62,7 +62,7 @@ FLOAT f2F(float a) {
 	exp -= (127 + 23 - 16);
 	if (exp >= 0){
 		if (exp >= 31) {
-			frac = 0; // overflow to zero in fixed range
+			frac = 0; 
 		} else {
 			frac = frac << exp;
 		}
