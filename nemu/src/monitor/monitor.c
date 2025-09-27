@@ -89,4 +89,8 @@ void restart() {
 
 	/* Initialize DRAM. */
 	init_ddr3();
+
+	/* Initialize cache (all lines invalid). */
+	extern void init_cache();
+	init_cache();
 }
