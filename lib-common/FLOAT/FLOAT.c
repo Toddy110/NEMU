@@ -1,8 +1,11 @@
 #include "FLOAT.h"
+#include <stdint.h>
+#include <string.h>
+
 
 FLOAT F_mul_F(FLOAT a, FLOAT b) {
-	nemu_assert(0);
-	return 0;
+	int64_t prod = (int64_t)a * (int64_t)b;
+	return (FLOAT)(prod >> 16);  
 }
 
 FLOAT F_div_F(FLOAT a, FLOAT b) {
@@ -23,9 +26,9 @@ FLOAT F_div_F(FLOAT a, FLOAT b) {
 	 * It is OK not to use the template above, but you should figure
 	 * out another way to perform the division.
 	 */
-
-	nemu_assert(0);
-	return 0;
+	FLOAT quotient, remainder;
+	asm volatile ("idiv %2" : "=a"(quotient), "=d"(remainder) : "r"(b), "a"(a << 16), "d"(a >> 16));
+	return quotient;
 }
 
 FLOAT f2F(float a) {
@@ -38,14 +41,57 @@ FLOAT f2F(float a) {
 	 * stack. How do you retrieve it to another variable without
 	 * performing arithmetic operations on it directly?
 	 */
+	uint32_t temp;
+	memcpy(&temp, &a, sizeof(a));
+	uint32_t sign = (temp >> 31) & 0x1;
+	int exp = (int)((temp >> 23) & 0xff);
+	uint32_t frac = temp & 0x7fffff;
 
-	nemu_assert(0);
-	return 0;
+	if (exp == 0) {
+		return 0;
+	}
+	if (exp == 0xff){
+		if (sign){
+			return -0x7fffffff;
+		}
+		else{
+			return 0x7fffffff;
+		}
+	}
+	frac = frac | 0x800000;
+	exp -= (127 + 23 - 16);
+	if (exp >= 0){
+		if (exp >= 31) {
+			frac = 0; 
+		} else {
+			frac = frac << exp;
+		}
+	}
+	else{
+		int sh = -exp;
+		if (sh >= 31) {
+			frac = 0;
+		} else {
+			frac = frac >> sh;
+		}
+	}
+
+	if (sign){
+		return -frac;
+	}
+	else{
+		return frac;
+	}
+
 }
 
 FLOAT Fabs(FLOAT a) {
-	nemu_assert(0);
-	return 0;
+	if (a >= 0){
+		return a;
+	}
+	else{
+		return -a;
+	}
 }
 
 /* Functions below are already implemented */

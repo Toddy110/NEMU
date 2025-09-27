@@ -81,3 +81,48 @@ void load_elf_tables(int argc, char *argv[]) {
 	fclose(fp);
 }
 
+uint32_t get_sym_val(char *syc, bool *success){
+	if (success){
+		*success = false;
+	}
+	if (syc == NULL || *syc == '\0'){
+		return 0;
+	}
+
+	int best_idx = -1;
+	int best_bind = -1;
+	uint32_t i;
+	for (i = 0; i < nr_symtab_entry; i++){
+		Elf32_Sym *s = &symtab[i];
+		if (!s->st_name){
+			continue;
+		}
+		uint8_t type = ELF32_ST_TYPE(s->st_info);
+		if (!(type == STT_FUNC || type == STT_OBJECT)){
+			continue;
+		}
+		char *name = strtab + s->st_name;
+		if (strcmp(name, syc) != 0){
+			continue;
+		}
+		if (s->st_shndx == SHN_UNDEF || s->st_value == 0){
+			continue;
+		}
+
+		uint32_t bind = ELF32_ST_BIND(s->st_info);
+		if (best_idx == -1 || bind > best_bind){
+			best_idx = i;
+			best_bind = bind;
+			if (bind == STB_GLOBAL){
+				break;
+			}
+		}
+	}
+	if (best_idx == -1){
+		return 0;
+	}
+	if (success){
+		*success = true;
+	}
+	return symtab[best_idx].st_value;
+}
