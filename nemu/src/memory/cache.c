@@ -1,124 +1,129 @@
-
-/*
- * 单级 Cache 实现 (64KB, 64B/block, 8-way, write-through, not write-allocate)
- * 变量命名与之前版本保持一致: CacheBlock, cache[set][way], valid.
- */
-
+/* 与新的 cache.h 同步使用宏/结构 */
 #include "memory/cache.h"
 #include <stdlib.h>
 #include <string.h>
 
+/* 外部 DRAM 接口 */
 uint32_t dram_read(hwaddr_t, size_t);
 void dram_write(hwaddr_t, size_t, uint32_t);
 
-#define CACHE_SIZE        (64 * 1024)
-#define CACHE_BLOCK_SIZE  64
-#define CACHE_WAYS        8
+/* 直接使用 cache.h 中的宏，不再重新定义辅助宏 */
 
-#define CACHE_NR_BLOCKS   (CACHE_SIZE / CACHE_BLOCK_SIZE)
-#define CACHE_NR_SETS     (CACHE_NR_BLOCKS / CACHE_WAYS)
+/* 头文件已定义：
+ * CACHE_b, CACHE_s, CACHE_e
+ * CACHE_B = 1<<b, CACHE_E = 1<<e, CACHE_S = 1<<s
+ * CacheBlock, cache_L1[]
+ */
 
-typedef struct CacheBlock {
-  uint8_t  data[CACHE_BLOCK_SIZE];
-  uint32_t tag;
-  uint8_t  valid;
-} CacheBlock;
-
-static CacheBlock cache[CACHE_NR_SETS][CACHE_WAYS];
+/* 简单 LCG 随机数，用于随机替换 */
+static inline uint32_t lcg_next(uint32_t mix) {
+  static uint32_t seed = 1;
+  seed = seed * 1103515245 + 12345 + mix;
+  return seed;
+}
 
 void init_cache(void) {
-  int s, w;
-  for (s = 0; s < CACHE_NR_SETS; s++) {
-    for (w = 0; w < CACHE_WAYS; w++) {
-      cache[s][w].valid = 0;
-      cache[s][w].tag = 0;
+  int i;
+  for (i = 0; i < CACHE_S * CACHE_E; i++) {
+    cache_L1[i].valid = 0;
+    cache_L1[i].tag = 0;
+  }
+}
+
+/* 查找/装填：返回块在一维数组中的索引 */
+static int read_cache_L1(hwaddr_t addr) {
+  uint32_t set = (addr >> CACHE_b) & (CACHE_S - 1);
+  uint32_t tag = addr >> (CACHE_b + CACHE_s);
+  int set_begin = set * CACHE_E;
+  int set_end = set_begin + CACHE_E;
+  int i;
+  for (i = set_begin; i < set_end; i++) {
+    if (cache_L1[i].valid && cache_L1[i].tag == tag) return i; /* Hit */
+  }
+  /* Miss: 找空位 */
+  for (i = set_begin; i < set_end; i++) {
+    if (!cache_L1[i].valid) break;
+  }
+  if (i == set_end) {
+    /* 随机替换 */
+    uint32_t r = lcg_next(set);
+    i = set_begin + (r % CACHE_E);
+  }
+  /* 填充：对齐到块起始地址，从 DRAM 读取 */
+  uint32_t block_start = (addr >> CACHE_b) << CACHE_b;
+  int off;
+  for (off = 0; off < CACHE_B; off += 4) {
+    uint32_t word = dram_read(block_start + off, 4);
+    cache_L1[i].data[off]     = word & 0xff;
+    cache_L1[i].data[off + 1] = (word >> 8) & 0xff;
+    cache_L1[i].data[off + 2] = (word >> 16) & 0xff;
+    cache_L1[i].data[off + 3] = (word >> 24) & 0xff;
+  }
+  cache_L1[i].valid = 1;
+  cache_L1[i].tag = tag;
+  return i;
+}
+
+/* 写一级缓存(命中才更新)，不写分配，直写到 DRAM */
+static void write_cache_L1(hwaddr_t addr, size_t len, uint32_t data) {
+  uint32_t set = (addr >> CACHE_b) & (CACHE_S - 1);
+  uint32_t tag = addr >> (CACHE_b + CACHE_s);
+  uint32_t block_bias = addr & (CACHE_B - 1);
+  int set_begin = set * CACHE_E;
+  int set_end = set_begin + CACHE_E;
+  int i;
+  for (i = set_begin; i < set_end; i++) {
+    if (cache_L1[i].valid && cache_L1[i].tag == tag) {
+      /* 命中：块内偏移写，考虑跨块 */
+      if (block_bias + len > CACHE_B) {
+        /* 第一块部分 */
+        int first = CACHE_B - block_bias;
+        int j;
+        for (j = 0; j < first; j++) cache_L1[i].data[block_bias + j] = (data >> (8 * j)) & 0xff;
+        dram_write(addr, first, data & (~0u >> ((4 - first) << 3)));
+        /* 递归写余下部分 */
+        write_cache_L1(addr + first, len - first, data >> (8 * first));
+      } else {
+        int j;
+        for (j = 0; j < (int)len; j++) cache_L1[i].data[block_bias + j] = (data >> (8 * j)) & 0xff;
+        dram_write(addr, len, data);
+      }
+      return;
     }
   }
-}
-
-/* 简单随机替换 (LCG) */
-static inline unsigned rand_way(unsigned set) {
-  static uint32_t seed = 1;
-  seed = seed * 1103515245 + 12345 + set;
-  return (seed >> 16) & (CACHE_WAYS - 1);
-}
-
-/* 取出包含 addr 的块; miss 时装填 */
-static CacheBlock *fetch_block(hwaddr_t addr) {
-  uint32_t block_index = addr / CACHE_BLOCK_SIZE;
-  uint32_t set = block_index % CACHE_NR_SETS;
-  uint32_t tag = block_index / CACHE_NR_SETS;
-  int w;
-  for (w = 0; w < CACHE_WAYS; w++) {
-    if (cache[set][w].valid && cache[set][w].tag == tag) return &cache[set][w];
-  }
-  /* miss: 找空位 */
-  for (w = 0; w < CACHE_WAYS; w++) {
-    if (!cache[set][w].valid) break;
-  }
-  if (w == CACHE_WAYS) w = rand_way(set); /* 随机替换 */
-  CacheBlock *blk = &cache[set][w];
-  blk->valid = 1;
-  blk->tag = tag;
-  uint32_t base = block_index * CACHE_BLOCK_SIZE;
-  int i;
-  for (i = 0; i < CACHE_BLOCK_SIZE; i += 4) {
-    uint32_t word = dram_read(base + i, 4);
-    blk->data[i] = word & 0xff;
-    blk->data[i + 1] = (word >> 8) & 0xff;
-    blk->data[i + 2] = (word >> 16) & 0xff;
-    blk->data[i + 3] = (word >> 24) & 0xff;
-  }
-  return blk;
-}
-
-static uint32_t cache_read_internal(hwaddr_t addr, size_t len) {
-  uint32_t block_end = (addr & ~(CACHE_BLOCK_SIZE - 1)) + CACHE_BLOCK_SIZE;
+  /* 未命中：不写分配，直接写 DRAM (可能跨块) */
+  uint32_t block_end = (addr & ~(CACHE_B - 1)) + CACHE_B;
   if (addr + len <= block_end) {
-    CacheBlock *blk = fetch_block(addr);
-    uint32_t off = addr & (CACHE_BLOCK_SIZE - 1);
-    uint32_t val = 0;
-    int i;
-    for (i = 0; i < (int)len; i++) val |= (uint32_t)blk->data[off + i] << (8 * i);
-    return val & (~0u >> ((4 - len) << 3));
+    dram_write(addr, len, data);
+    return;
   }
-  /* 跨块拆分 */
-  uint32_t first_len = block_end - addr;
-  uint32_t low = cache_read_internal(addr, first_len);
-  uint32_t high = cache_read_internal(addr + first_len, len - first_len);
-  return low | (high << (first_len * 8));
-}
-
-static void cache_write_internal(hwaddr_t addr, size_t len, uint32_t data) {
-  uint32_t block_end = (addr & ~(CACHE_BLOCK_SIZE - 1)) + CACHE_BLOCK_SIZE;
-  if (addr + len <= block_end) {
-    /* 仅当命中才写 Cache (not write-allocate) */
-  uint32_t block_index = addr / CACHE_BLOCK_SIZE;
-  uint32_t set = block_index % CACHE_NR_SETS;
-  uint32_t tag = block_index / CACHE_NR_SETS;
-  CacheBlock *hit = NULL;
-  int w;
-  for (w = 0; w < CACHE_WAYS; w++) {
-    if (cache[set][w].valid && cache[set][w].tag == tag) { hit = &cache[set][w]; break; }
-  }
-  if (hit) {
-    uint32_t off = addr & (CACHE_BLOCK_SIZE - 1);
-    int i;
-    for (i = 0; i < (int)len; i++) hit->data[off + i] = (data >> (8 * i)) & 0xff;
-  }
-  /* write-through */
-  dram_write(addr, len, data);
-  return;
-  }
-  /* 跨块拆分 */
-  uint32_t first_len = block_end - addr;
-  uint32_t low_mask = (~0u) >> ((4 - first_len) << 3);
+  uint32_t first = block_end - addr;
+  uint32_t low_mask = (~0u) >> ((4 - first) << 3);
   uint32_t low_part = data & low_mask;
-  uint32_t high_part = data >> (first_len * 8);
-  cache_write_internal(addr, first_len, low_part);
-  cache_write_internal(addr + first_len, len - first_len, high_part);
+  uint32_t high_part = data >> (8 * first);
+  dram_write(addr, first, low_part);
+  write_cache_L1(addr + first, len - first, high_part);
 }
 
-uint32_t cache_hwaddr_read(hwaddr_t addr, size_t len) { return cache_read_internal(addr, len); }
-void cache_hwaddr_write(hwaddr_t addr, size_t len, uint32_t data) { cache_write_internal(addr, len, data); }
+/* 对外读取接口 (适配 cache.h -> cache_hwaddr_read) */
+static uint32_t read_L1(hwaddr_t addr, size_t len) {
+  uint32_t block_bias = addr & (CACHE_B - 1);
+  int idx = read_cache_L1(addr);
+  if (block_bias + len > CACHE_B) {
+    int first = CACHE_B - block_bias;
+    uint32_t low = read_L1(addr, first);
+    uint32_t high = read_L1(addr + first, len - first);
+    return low | (high << (8 * first));
+  }
+  /* 逐字节拼装，避免别名警告 */
+  uint32_t val = 0;
+  int i;
+  for (i = 0; i < (int)len; i++) {
+    val |= (uint32_t)cache_L1[idx].data[block_bias + i] << (8 * i);
+  }
+  return val & (~0u >> ((4 - len) << 3));
+}
+
+uint32_t cache_hwaddr_read(hwaddr_t addr, size_t len) { return read_L1(addr, len); }
+void cache_hwaddr_write(hwaddr_t addr, size_t len, uint32_t data) { write_cache_L1(addr, len, data); }
 
