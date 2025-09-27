@@ -1,4 +1,5 @@
 #include "nemu.h"
+#include "memory/cache.h"
 
 #define ENTRY_START 0x100000
 
@@ -91,6 +92,5 @@ void restart() {
 	init_ddr3();
 
 	/* Initialize cache (all lines invalid). */
-	extern void init_cache();
 	init_cache();
 }
