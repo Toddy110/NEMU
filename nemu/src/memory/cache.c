@@ -2,6 +2,7 @@
 #include "memory/cache.h"
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 /* 外部 DRAM 接口 */
 uint32_t dram_read(hwaddr_t, size_t);
@@ -15,15 +16,12 @@ void dram_write(hwaddr_t, size_t, uint32_t);
  * CacheBlock, cache_L1[]
  */
 
-/* 简单 LCG 随机数，用于随机替换 */
-static inline uint32_t lcg_next(uint32_t mix) {
-  static uint32_t seed = 1;
-  seed = seed * 1103515245 + 12345 + mix;
-  return seed;
-}
+/* 使用 srand(time(0)) + rand() 生成随机替换序号 */
 
 void init_cache(void) {
   int i;
+  /* 初始化随机种子 */
+  srand(time(0));
   for (i = 0; i < CACHE_S * CACHE_E; i++) {
     cache_L1[i].valid = 0;
     cache_L1[i].tag = 0;
@@ -46,7 +44,7 @@ static int read_cache_L1(hwaddr_t addr) {
   }
   if (i == set_end) {
     /* 随机替换 */
-    uint32_t r = lcg_next(set);
+    uint32_t r = (uint32_t)rand();
     i = set_begin + (r % CACHE_E);
   }
   /* 填充：对齐到块起始地址，从 DRAM 读取 */
