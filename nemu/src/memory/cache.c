@@ -94,6 +94,10 @@ static uint32_t read_L1(hwaddr_t addr, size_t len) {
   return val & (~0u >> ((4 - len) << 3));
 }
 
-uint32_t cache_hwaddr_read(hwaddr_t addr, size_t len) { return read_L1(addr, len); }
-void cache_hwaddr_write(hwaddr_t addr, size_t len, uint32_t data) { write_cache_L1(addr, len, data); }
+uint32_t cache_hwaddr_read(hwaddr_t addr, size_t len){ 
+    return read_L1(addr, len); 
+}
+void cache_hwaddr_write(hwaddr_t addr, size_t len, uint32_t data){ 
+    write_cache_L1(addr, len, data); 
+}
 
