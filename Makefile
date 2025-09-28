@@ -15,7 +15,7 @@ FLOAT := obj/$(LIB_COMMON_DIR)/FLOAT/FLOAT.a
 include config/Makefile.git
 include config/Makefile.build
 
-all: nemu testcase
+all: nemu
 
 
 ##### rules for building the project #####
