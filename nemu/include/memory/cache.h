@@ -34,4 +34,4 @@ typedef struct{
 } L2;
 extern L2 cache_L2[CACHE_L2_S * CACHE_L2_E];
 
-#endif /* __MEMORY_CACHE_H__ */
+#endif 
