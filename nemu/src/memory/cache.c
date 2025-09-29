@@ -4,9 +4,10 @@
 #include <time.h>
 #include "memory/burst.h"
 
-/* Forward declarations to silence implicit declaration warnings */
-int read_cache_L2(hwaddr_t addr);
-void write_cache_L2(hwaddr_t addr, size_t len, uint32_t data);
+/* Internal forward declarations */
+static int read_cache_L2(hwaddr_t addr);
+static void write_cache_L2(hwaddr_t addr, size_t len, uint32_t data);
+static void seed_random_once(void) { static int inited = 0; if(!inited){ inited = 1; srand(0xC0FFEE); } }
 //初始化高速缓存
 void init_cache() {
   //遍历所有高速缓存块，将有效位和脏标签清空即可
@@ -36,7 +37,7 @@ int read_cache_L1(hwaddr_t addr) {
     if (cache_L1[block_i].validVal && cache_L1[block_i].tag == tag) // Hit!
       return block_i;
   //如果一级高速缓存内未命中，则到二级高速缓存中查找
-  srand(time(0));
+  seed_random_once();
   int block_i_L2 = read_cache_L2(addr);
   //二级缓存中要是也没有找到，就先看看一级高速缓存中是否存在空的缓存块
   for (block_i = set_begin; block_i < set_end; block_i++)
@@ -57,7 +58,7 @@ int read_cache_L1(hwaddr_t addr) {
 void ddr3_write_me(hwaddr_t addr, void* data, uint8_t* mask);
  
 // 查找二级高速缓存中与地址匹配的缓存块，返回缓存块的位置参数
-int read_cache_L2(hwaddr_t addr) {
+static int read_cache_L2(hwaddr_t addr) {
   uint32_t set = ((addr >> CACHE_b) & (CACHE_L2_S - 1));
   uint32_t tag = (addr >> (CACHE_b + CACHE_L2_s));
   //涉及到块内写操作，要遵循空间局部性原理，因此要清空块内偏移量，找到块的起始位置
@@ -69,7 +70,7 @@ int read_cache_L2(hwaddr_t addr) {
     if (cache_L2[block_i].validVal && cache_L2[block_i].tag == tag) 
       return block_i; // Hit!
   //二级缓存中要是没有找到，就先看看是否存在空的缓存块
-  srand(time(0));
+  seed_random_once();
   for (block_i = set_begin; block_i < set_end; block_i++)
     if (!cache_L2[block_i].validVal)
       break;
@@ -130,7 +131,7 @@ void write_cache_L1(hwaddr_t addr, size_t len, uint32_t data) {
   return;
 }
  
-void write_cache_L2(hwaddr_t addr, size_t len, uint32_t data) {
+static void write_cache_L2(hwaddr_t addr, size_t len, uint32_t data) {
   uint32_t set = ((addr >> CACHE_b) & (CACHE_L2_S - 1));
   uint32_t tag = (addr >> (CACHE_b + CACHE_L2_s));
   uint32_t block_bias = addr & (CACHE_B - 1);
@@ -168,7 +169,7 @@ void dram_write(hwaddr_t, size_t, uint32_t);
 uint32_t hwaddr_read(hwaddr_t addr, size_t len) {
   int cache_L1_way_1_index = read_cache_L1(addr);
   uint32_t block_bias = addr & (CACHE_B - 1);
-  uint8_t ret[BURST_LEN << 1];
+  uint8_t ret[8]; /* enough to assemble 32-bit value possibly spanning blocks */
   //printf("%d\n", block_bias);
   if (block_bias + len > CACHE_B) {
     int cache_L1_way_2_index = read_cache_L1(addr + CACHE_B - block_bias);
