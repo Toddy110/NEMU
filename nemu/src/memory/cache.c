@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "memory/burst.h"
+
+/* Forward declarations to silence implicit declaration warnings */
+int read_cache_L2(hwaddr_t addr);
+void write_cache_L2(hwaddr_t addr, size_t len, uint32_t data);
 //初始化高速缓存
 void init_cache() {
   //遍历所有高速缓存块，将有效位和脏标签清空即可
