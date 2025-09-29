@@ -24,8 +24,7 @@ typedef struct{
     uint32_t tag;
     bool validVal;
 } L1;
-
-L1 cache_L1[CACHE_L1_S * CACHE_L1_E];
+extern L1 cache_L1[CACHE_L1_S * CACHE_L1_E];
  
 typedef struct{
     uint8_t data[CACHE_B];
@@ -33,7 +32,6 @@ typedef struct{
     bool validVal;
     bool dirtyVal;
 } L2;
- 
-L2 cache_L2[CACHE_L2_S * CACHE_L2_E];
+extern L2 cache_L2[CACHE_L2_S * CACHE_L2_E];
 
 #endif /* __MEMORY_CACHE_H__ */

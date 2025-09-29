@@ -8,6 +8,10 @@
 static int read_cache_L2(hwaddr_t addr);
 static void write_cache_L2(hwaddr_t addr, size_t len, uint32_t data);
 static void seed_random_once(void) { static int inited = 0; if(!inited){ inited = 1; srand(0xC0FFEE); } }
+// 定义全局缓存数组（在头文件中以 extern 声明）
+L1 cache_L1[CACHE_L1_S * CACHE_L1_E];
+L2 cache_L2[CACHE_L2_S * CACHE_L2_E];
+
 //初始化高速缓存
 void init_cache() {
   //遍历所有高速缓存块，将有效位和脏标签清空即可
@@ -166,7 +170,7 @@ void dram_write(hwaddr_t, size_t, uint32_t);
  
 /* Memory accessing interfaces */
  
-uint32_t hwaddr_read(hwaddr_t addr, size_t len) {
+uint32_t cache_hwaddr_read(hwaddr_t addr, size_t len) {
   int cache_L1_way_1_index = read_cache_L1(addr);
   uint32_t block_bias = addr & (CACHE_B - 1);
   uint8_t ret[8]; /* enough to assemble 32-bit value possibly spanning blocks */
@@ -183,6 +187,6 @@ uint32_t hwaddr_read(hwaddr_t addr, size_t len) {
   return result;
 }
  
-void hwaddr_write(hwaddr_t addr, size_t len, uint32_t data) {
+void cache_hwaddr_write(hwaddr_t addr, size_t len, uint32_t data) {
   write_cache_L1(addr, len, data);
 }

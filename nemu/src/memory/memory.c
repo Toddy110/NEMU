@@ -1,5 +1,11 @@
-/* Thin wrapper delegating cache logic to memory/cache.c */
+#include "common.h"
+
 #include "memory/cache.h"
+
+uint32_t dram_read(hwaddr_t, size_t); /* still used indirectly during fills */
+void dram_write(hwaddr_t, size_t, uint32_t);
+
+/* Memory accessing interfaces */
 
 uint32_t hwaddr_read(hwaddr_t addr, size_t len) { return cache_hwaddr_read(addr, len); }
 void hwaddr_write(hwaddr_t addr, size_t len, uint32_t data) { cache_hwaddr_write(addr, len, data); }
