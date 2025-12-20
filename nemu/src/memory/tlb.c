@@ -1,5 +1,6 @@
 #include "tlb.h"
 #include "cpu/cpu.h"
+#include <stdlib.h>
 
 TLBEntry tlb[64];
 
@@ -23,22 +24,24 @@ int tlb_lookup(lnaddr_t addr, hwaddr_t *hwaddr) {
 
     int i;
     for (i = 0; i < 64; i++) {
-        if (tlb[i].valid && tlb[i].tag == tag) {
+        TLBEntry *entry = &tlb[i];
+        if (entry->valid && entry->tag == tag) {
             if (hwaddr != NULL) {
-                *hwaddr = (hwaddr_t)((tlb[i].page_frame << 12) | offset);
+                *hwaddr = (hwaddr_t)((entry->page_frame << 12) + offset);
             }
             return 1;
         }
     }
+
     return 0;
 }
 
 void tlb_fill(lnaddr_t addr, hwaddr_t hwaddr) {
-    static int tlb_idx = 0;
+    uint32_t tag = (uint32_t)(addr >> 12);
+    uint32_t page_frame = (uint32_t)(hwaddr >> 12);
 
-    tlb[tlb_idx].valid = true;
-    tlb[tlb_idx].tag = (uint32_t)(addr >> 12);
-    tlb[tlb_idx].page_frame = (uint32_t)(hwaddr >> 12);
-
-    tlb_idx = (tlb_idx + 1) % 64;
+    int idx = rand() % 64;
+    tlb[idx].valid = 1;
+    tlb[idx].tag = tag;
+    tlb[idx].page_frame = page_frame;
 }
