@@ -1,5 +1,6 @@
 #include "nemu.h"
 #include "memory/cache.h"
+#include "memory/tlb.h"
 
 #define ENTRY_START 0x100000
 
@@ -88,8 +89,12 @@ void restart() {
 	/* Set the initial instruction pointer. */
 	cpu.eip = ENTRY_START;
 
-	/* Boot with paging disabled (lab requirement). */
-	cpu.cr0.val &= ~CR0_PG;
+	/* Boot in real mode with paging disabled (lab requirement). */
+	cpu.cr0.val &= ~0x1u;      /* PE = 0 */
+	cpu.cr0.val &= ~CR0_PG;    /* PG = 0 */
+
+	/* Initialize TLB. */
+	tlb_init();
 
 	/* Initialize DRAM. */
 	init_ddr3();
