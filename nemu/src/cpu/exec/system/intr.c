@@ -37,8 +37,13 @@ static inline uint32_t pop32(void) {
 static int in_sw_intr = 0;
 static uint32_t saved_user_esp = 0;
 
-/* Chosen to match kernel’s convention (see kernel/src/main.c). */
-#define KERNEL_STACK_TOP 0xC0000000u
+/*
+ * Use a high kernel-mapped area as a temporary interrupt stack.
+ * Note: 0xc8000000 is just above the last mapped 128MB (KOFFSET+PHY_MEM),
+ * but we only start using it after the first push (at 0xc7fffffc), which is
+ * still within the mapped region.
+ */
+#define KERNEL_STACK_TOP 0xC8000000u
 
 static void load_cs_cache(uint16_t selector) {
   /* Keep consistent with seg.c’s descriptor parsing logic. */
