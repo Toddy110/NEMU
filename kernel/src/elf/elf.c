@@ -38,15 +38,35 @@ uint32_t loader() {
 	/* Load each program segment */
 	ph = (void *)buf + elf->e_phoff;
 	Elf32_Phdr *eph;
+
+#ifdef IA32_PAGE
+	/* Switch to user page directory early so that accesses to user virtual
+	 * addresses go through the page tables we are going to build via mm_malloc().
+	 */
+	write_cr3(get_ucr3());
+#endif
 	
 	for(eph = ph + elf->e_phnum; ph < eph; ph++) {
 		/* Scan the program header table, load each segment into memory */
 		if(ph->p_type == PT_LOAD) {
 			uint32_t addr = ph->p_vaddr;
+
+#ifdef IA32_PAGE
+			/* Allocate physical memory for [addr, addr + MemSiz). This should also
+			 * fill the page directory/page tables for the user address space.
+			 */
+			mm_malloc(addr, ph->p_memsz);
+			/* Flush TLB to make sure the new mappings take effect immediately. */
+			write_cr3(get_ucr3());
+#endif
 			/* TODO: read the content of the segment from the ELF file 
 			 * to the memory region [VirtAddr, VirtAddr + FileSiz)
 			 */
-			 ramdisk_read((void *)addr, ELF_OFFSET_IN_DISK + ph->p_offset, ph->p_filesz);
+			#ifdef HAS_DEVICE
+			ide_read((void *)addr, ELF_OFFSET_IN_DISK + ph->p_offset, ph->p_filesz);
+			#else
+			ramdisk_read((void *)addr, ELF_OFFSET_IN_DISK + ph->p_offset, ph->p_filesz);
+			#endif
 
 			 
 			/* TODO: zero the memory region 
@@ -66,7 +86,9 @@ uint32_t loader() {
 	volatile uint32_t entry = elf->e_entry;
 
 #ifdef IA32_PAGE
-	mm_malloc(KOFFSET - STACK_SIZE, STACK_SIZE);
+	/* Allocate user process stack: stack top is 0xc0000000, size is 1MB. */
+	mm_malloc(0xc0000000 - (1024 * 1024), 1024 * 1024);
+	write_cr3(get_ucr3());
 
 #ifdef HAS_DEVICE
 	create_video_mapping();
