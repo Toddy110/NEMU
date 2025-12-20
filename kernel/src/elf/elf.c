@@ -90,6 +90,18 @@ uint32_t loader() {
 	mm_malloc(0xc0000000 - (1024 * 1024), 1024 * 1024);
 	write_cr3(get_ucr3());
 
+	/*
+	 * Some uclibc routines in this lab may execute `call 0` as a stub.
+	 * Map the first page and place a single `ret` instruction there so the
+	 * call returns immediately instead of faulting on an unmapped null page.
+	 */
+	mm_malloc(0x0, 4096);
+	write_cr3(get_ucr3());
+	{
+		volatile uint8_t *tramp = (volatile uint8_t *)0x0;
+		tramp[0] = 0xC3; /* ret */
+	}
+
 #ifdef HAS_DEVICE
 	create_video_mapping();
 #endif
