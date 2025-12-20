@@ -3,7 +3,7 @@
 #define instr lods
 
 static void do_execute(){
-    DATA_TYPE val = MEM_R(cpu.esi);
+    DATA_TYPE val = swaddr_read(cpu.esi, DATA_BYTE, 1); /* DS */
 #if DATA_BYTE == 1
     reg_b(R_AL) = val;
 #else 

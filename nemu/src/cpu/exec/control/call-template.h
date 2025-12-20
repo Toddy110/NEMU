@@ -9,7 +9,7 @@ make_helper(concat(call_i_, SUFFIX)) {
     /* In our 32-bit environment, always push 4-byte return address
        to keep consistency with RET which pops 4 bytes. */
     cpu.esp -= 4;
-    swaddr_write(cpu.esp, 4, return_addr, 1);
+    swaddr_write(cpu.esp, 4, return_addr, 3);
     cpu.eip += (DATA_TYPE_S)op_src->val;
     
     print_asm("call: 0x%x", return_addr);
@@ -19,7 +19,7 @@ make_helper(concat(call_i_, SUFFIX)) {
 make_helper(concat(call_rm_, SUFFIX)){
     int len = concat(decode_rm_, SUFFIX)(cpu.eip + 1);
 	reg_l(R_ESP) -= DATA_BYTE;
-    swaddr_write(reg_l(R_ESP) , 4, cpu.eip + len + 1, 1);
+    swaddr_write(reg_l(R_ESP) , 4, cpu.eip + len + 1, 3);
 	DATA_TYPE_S imm = op_src -> val;
 	print_asm("call %x",imm);
 	cpu.eip = imm - len - 1;

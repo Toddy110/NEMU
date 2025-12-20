@@ -8,6 +8,8 @@ int load_addr(swaddr_t eip, ModR_M *m, Operand *rm) {
 	int instr_len, disp_offset, disp_size = 4;
 	int base_reg = -1, index_reg = -1, scale = 0;
 	swaddr_t addr = 0;
+	/* default segment for data memory reference */
+	uint8_t sreg = 1; /* DS */
 
 	if(m->R_M == R_ESP) {
 		SIB s;
@@ -17,11 +19,14 @@ int load_addr(swaddr_t eip, ModR_M *m, Operand *rm) {
 		scale = s.ss;
 
 		if(s.index != R_ESP) { index_reg = s.index; }
+		/* stack addressing defaults to SS when base is ESP/EBP */
+		if(base_reg == R_ESP || base_reg == R_EBP) { sreg = 3; /* SS */ }
 	}
 	else {
 		/* no SIB */
 		base_reg = m->R_M;
 		disp_offset = 1;
+		if(base_reg == R_EBP || base_reg == R_ESP) { sreg = 3; /* SS */ }
 	}
 
 	if(m->mod == 0) {
@@ -79,7 +84,7 @@ int load_addr(swaddr_t eip, ModR_M *m, Operand *rm) {
 
 	rm->type = OP_TYPE_MEM;
 	rm->addr = addr;
-	rm->sreg = R_DS;
+	rm->sreg = sreg;
 
 	return instr_len;
 }
@@ -110,7 +115,7 @@ int read_ModR_M(swaddr_t eip, Operand *rm, Operand *reg) {
 	}
 	else {
 		int instr_len = load_addr(eip, &m, rm);
-		rm->val = swaddr_read(rm->addr, rm->size, 1);
+		rm->val = swaddr_read(rm->addr, rm->size, rm->sreg);
 		return instr_len;
 	}
 }
