@@ -1,6 +1,7 @@
 #include "common.h"
-
 #include "memory/cache.h"
+#include "cpu/reg.h"
+#include "memory/memory.h"
 
 uint32_t dram_read(hwaddr_t, size_t); /* still used indirectly during fills */
 void dram_write(hwaddr_t, size_t, uint32_t);
@@ -10,25 +11,68 @@ void dram_write(hwaddr_t, size_t, uint32_t);
 uint32_t hwaddr_read(hwaddr_t addr, size_t len) { return cache_hwaddr_read(addr, len); }
 void hwaddr_write(hwaddr_t addr, size_t len, uint32_t data) { cache_hwaddr_write(addr, len, data); }
 
+hwaddr_t page_translate(lnaddr_t addr) {
+    if (!cpu.cr0.PG) {
+        return addr;
+    }
+
+    uint32_t dir = (addr >> 22) & 0x3ff;
+    uint32_t page = (addr >> 12) & 0x3ff;
+    uint32_t offset = addr & 0xfff;
+
+    hwaddr_t pde_addr = (cpu.cr3.page_directory_base << 12) + (dir * 4);
+    PDE pde;
+    pde.val = hwaddr_read(pde_addr, 4);
+    Assert(pde.present, "PDE not present at 0x%x for linear address 0x%x", pde_addr, addr);
+
+    hwaddr_t pte_addr = (pde.page_frame << 12) + (page * 4);
+    PTE pte;
+    pte.val = hwaddr_read(pte_addr, 4);
+    Assert(pte.present, "PTE not present at 0x%x for linear address 0x%x", pte_addr, addr);
+
+    return (pte.page_frame << 12) + offset;
+}
+
 uint32_t lnaddr_read(lnaddr_t addr, size_t len) {
-	return hwaddr_read(addr, len);
+    if (((addr & 0xfff) + len) > 0x1000) {
+        /* Cross page boundary */
+        uint32_t data = 0;
+        int i; for (i = 0; i < len; i++) {
+            hwaddr_t hwaddr = page_translate(addr + i);
+            uint32_t b = hwaddr_read(hwaddr, 1);
+            data |= (b << (i * 8));
+        }
+        return data;
+    } else {
+        hwaddr_t hwaddr = page_translate(addr);
+        return hwaddr_read(hwaddr, len);
+    }
 }
 
 void lnaddr_write(lnaddr_t addr, size_t len, uint32_t data) {
-	hwaddr_write(addr, len, data);
+    if (((addr & 0xfff) + len) > 0x1000) {
+        /* Cross page boundary */
+        int i; for (i = 0; i < len; i++) {
+            hwaddr_t hwaddr = page_translate(addr + i);
+            uint8_t b = (data >> (i * 8)) & 0xff;
+            hwaddr_write(hwaddr, 1, b);
+        }
+    } else {
+        hwaddr_t hwaddr = page_translate(addr);
+        hwaddr_write(hwaddr, len, data);
+    }
 }
 
 uint32_t swaddr_read(swaddr_t addr, size_t len) {
 #ifdef DEBUG
-	assert(len == 1 || len == 2 || len == 4);
+        assert(len == 1 || len == 2 || len == 4);
 #endif
-	return lnaddr_read(addr, len);
+        return lnaddr_read(addr, len);
 }
 
 void swaddr_write(swaddr_t addr, size_t len, uint32_t data) {
 #ifdef DEBUG
-	assert(len == 1 || len == 2 || len == 4);
+        assert(len == 1 || len == 2 || len == 4);
 #endif
-	lnaddr_write(addr, len, data);
+        lnaddr_write(addr, len, data);
 }
-
