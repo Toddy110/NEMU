@@ -2,6 +2,7 @@
 #include "memory/cache.h"
 #include "cpu/reg.h"
 #include "memory/memory.h"
+#include "memory/tlb.h"
 
 uint32_t dram_read(hwaddr_t, size_t); /* still used indirectly during fills */
 void dram_write(hwaddr_t, size_t, uint32_t);
@@ -11,24 +12,17 @@ void dram_write(hwaddr_t, size_t, uint32_t);
 uint32_t hwaddr_read(hwaddr_t addr, size_t len) { return cache_hwaddr_read(addr, len); }
 void hwaddr_write(hwaddr_t addr, size_t len, uint32_t data) { cache_hwaddr_write(addr, len, data); }
 
-typedef struct {
-    bool valid;
-    uint32_t tag;
-    uint32_t page_frame;
-} TLBEntry;
-
-TLBEntry tlb[64];
-
-void init_tlb() {
-    int i;
-    for (i = 0; i < 64; i++) {
-        tlb[i].valid = 0;
-    }
-}
+/* Backward-compatible entry point used by existing code (e.g., CR3 updates). */
+void init_tlb() { tlb_init(); }
 
 hwaddr_t page_translate(lnaddr_t addr) {
     if (!cpu.cr0.PG) {
         return addr;
+    }
+
+    hwaddr_t hwaddr;
+    if (tlb_lookup(addr, &hwaddr)) {
+        return hwaddr;
     }
 
     uint32_t dir = (addr >> 22) & 0x3FF;
@@ -43,7 +37,9 @@ hwaddr_t page_translate(lnaddr_t addr) {
     uint32_t pte = hwaddr_read(pte_addr, 4);
     assert(pte & 0x1);
 
-    return (pte & 0xFFFFF000) + offset;
+    hwaddr = (pte & 0xFFFFF000) + offset;
+    tlb_fill(addr, hwaddr);
+    return hwaddr;
 }
 
 uint32_t lnaddr_read(lnaddr_t addr, size_t len) {

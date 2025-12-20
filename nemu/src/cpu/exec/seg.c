@@ -3,6 +3,7 @@
 
 #include "cpu/cpu.h"
 #include "memory/memory.h"
+#include "memory/tlb.h"
 
 static void load_sreg(uint8_t sreg, uint16_t selector) {
   cpu.sreg[sreg].selector = selector;
@@ -84,6 +85,7 @@ make_helper(mov_r2cr) {
   } else if (cr == 3) {
     /* Keep compatibility with existing implementation. */
     cpu.cr3 = reg_l(r) & 0xfffff000u;
+    tlb_flush();
     init_tlb();
   } else {
     /* Unsupported CRn in this lab; ignore to avoid crashing release builds. */
