@@ -132,7 +132,7 @@ static int cmd_x(char *args){
 		// if ((i % 4) == 0){
 		// 	printf("0x%08x: ", current_addr);
 		// }
-		uint32_t word_val = swaddr_read(current_addr, 4);
+		uint32_t word_val = swaddr_read(current_addr, 4, 1);
 		printf("0x%08x ", word_val);
 		current_addr += 4;
 		// if ((i % 4) == 3){

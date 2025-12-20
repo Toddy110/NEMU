@@ -294,7 +294,7 @@ uint32_t eval(int p, int q){
 			return -eval(p + 1, q);
 		}
 		if (tokens[p].type == DEREF){
-			return swaddr_read(eval(p + 1, q), 4);
+			return swaddr_read(eval(p + 1, q), 4, 1);
 		}
 		if (tokens[p].type == NOT){
 			return !eval(p + 1, q);

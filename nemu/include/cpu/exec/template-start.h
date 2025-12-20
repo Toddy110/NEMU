@@ -27,8 +27,9 @@
 #define REG(index) concat(reg_, SUFFIX) (index)
 #define REG_NAME(index) concat(regs, SUFFIX) [index]
 
-#define MEM_R(addr) swaddr_read(addr, DATA_BYTE)
-#define MEM_W(addr, data) swaddr_write(addr, DATA_BYTE, data)
+/* data memory access is bound to DS=1 */
+#define MEM_R(addr) swaddr_read(addr, DATA_BYTE, 1)
+#define MEM_W(addr, data) swaddr_write(addr, DATA_BYTE, data, 1)
 
 #define OPERAND_W(op, src) concat(write_operand_, SUFFIX) (op, src)
 

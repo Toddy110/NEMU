@@ -4,7 +4,7 @@
 
 static void do_execute(){
     cpu.esp -= 4;
-    swaddr_write(cpu.esp, 4, op_src->val);
+    swaddr_write(cpu.esp, 4, op_src->val, 1);
     print_asm_template1();
 }
 

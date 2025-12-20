@@ -126,26 +126,26 @@ lnaddr_t segment_translate(swaddr_t addr, size_t len, uint8_t sreg) {
     return seg_translate(addr, len, sreg);
 }
 
-uint32_t swaddr_read(swaddr_t addr, size_t len) {
+uint32_t swaddr_read(swaddr_t addr, size_t len, uint8_t sreg) {
 #ifdef DEBUG
         assert(len == 1 || len == 2 || len == 4);
 #endif
-        lnaddr_t lnaddr = seg_translate(addr, len, 1);
-        return lnaddr_read(lnaddr, len);
+    lnaddr_t lnaddr = seg_translate(addr, len, sreg);
+    return lnaddr_read(lnaddr, len);
 }
 
 uint32_t swaddr_read_instr(swaddr_t addr, size_t len) {
 #ifdef DEBUG
         assert(len == 1 || len == 2 || len == 4);
 #endif
-        lnaddr_t lnaddr = seg_translate(addr, len, 0);
-        return lnaddr_read(lnaddr, len);
+    /* instruction fetch is bound to CS=0 */
+    return swaddr_read(addr, len, 0);
 }
 
-void swaddr_write(swaddr_t addr, size_t len, uint32_t data) {
+void swaddr_write(swaddr_t addr, size_t len, uint32_t data, uint8_t sreg) {
 #ifdef DEBUG
         assert(len == 1 || len == 2 || len == 4);
 #endif
-        lnaddr_t lnaddr = seg_translate(addr, len, 1);
-        lnaddr_write(lnaddr, len, data);
+    lnaddr_t lnaddr = seg_translate(addr, len, sreg);
+    lnaddr_write(lnaddr, len, data);
 }
