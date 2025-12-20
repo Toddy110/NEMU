@@ -1,6 +1,7 @@
 #ifndef __MEMORY_CACHE_H__
 #define __MEMORY_CACHE_H__
 #include "common.h"
+#include <stdint.h>
 
 void init_cache(void);
 uint32_t cache_hwaddr_read(hwaddr_t addr, size_t len);
@@ -19,6 +20,10 @@ void cache_hwaddr_write(hwaddr_t addr, size_t len, uint32_t data);
 #define CACHE_L2_E (1 << CACHE_L2_e)
 #define CACHE_L2_S (1 << CACHE_L2_s)
  
+extern uint64_t cache_cycle;
+extern uint64_t cache_hit;
+extern uint64_t cache_miss;
+
 typedef struct{
     uint8_t data[CACHE_B];
     uint32_t tag;

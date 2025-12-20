@@ -1,159 +1,158 @@
 #include "memory/cache.h"
+#include "macro.h"
+
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-#include "memory/burst.h"
-
-static int read_cache_L2(hwaddr_t addr);
-static void write_cache_L2(hwaddr_t addr, size_t len, uint32_t data);
-static void seed_random_once(void) { static int inited = 0; if(!inited){ inited = 1; srand(0xC0FFEE); } }
-L1 cache_L1[CACHE_L1_S * CACHE_L1_E];
-L2 cache_L2[CACHE_L2_S * CACHE_L2_E];
-
-void init_cache() {
-  int i;
-  for (i = 0; i < CACHE_L1_S * CACHE_L1_E; i++) {
-    cache_L1[i].validVal = false;
-  }
-  for (i = 0; i < CACHE_L2_S * CACHE_L2_E; i++) {
-    cache_L2[i].dirtyVal = false;
-    cache_L2[i].validVal = false;
-  }
-  return;
-}
-void ddr3_read_me(hwaddr_t addr, void* data);
-
-int read_cache_L1(hwaddr_t addr) {
-  uint32_t set = ((addr >> CACHE_b) & (CACHE_L1_S - 1));
-  uint32_t tag = (addr >> (CACHE_b + CACHE_L1_s));
-  int block_i;
-  int set_begin = set * CACHE_L1_E;
-  int set_end = (set + 1) * CACHE_L1_E;
-  for (block_i = set_begin; block_i < set_end; block_i++)
-    if (cache_L1[block_i].validVal && cache_L1[block_i].tag == tag)
-      return block_i;
-  seed_random_once();
-  int block_i_L2 = read_cache_L2(addr);
-  for (block_i = set_begin; block_i < set_end; block_i++)
-    if (!cache_L1[block_i].validVal)
-      break;
-  if (block_i == set_end)
-    block_i = set_begin + rand() % CACHE_L1_E;
-  memcpy(cache_L1[block_i].data, cache_L2[block_i_L2].data, CACHE_B);
-
-  cache_L1[block_i].validVal = true;
-  cache_L1[block_i].tag = tag;
-  return block_i;
-}
-
-void ddr3_write_me(hwaddr_t addr, void* data, uint8_t* mask);
-
-static int read_cache_L2(hwaddr_t addr) {
-  uint32_t set = ((addr >> CACHE_b) & (CACHE_L2_S - 1));
-  uint32_t tag = (addr >> (CACHE_b + CACHE_L2_s));
-  uint32_t block_start = ((addr >> CACHE_b) << CACHE_b);
-  int block_i;
-  int set_begin = set * CACHE_L2_E;
-  int set_end = (set + 1) * CACHE_L2_E;
-  for (block_i = set_begin; block_i < set_end; block_i++)
-    if (cache_L2[block_i].validVal && cache_L2[block_i].tag == tag)
-      return block_i;
-  seed_random_once();
-  for (block_i = set_begin; block_i < set_end; block_i++)
-    if (!cache_L2[block_i].validVal)
-      break;
-  if (block_i == set_end)
-    block_i = set_begin + rand() % CACHE_L2_E;
-  int i;
-  if (cache_L2[block_i].validVal && cache_L2[block_i].dirtyVal) {
-    uint8_t tmp[BURST_LEN << 1];
-    memset(tmp, 1, sizeof(tmp));
-    uint32_t block_start_x = (cache_L2[block_i].tag << (CACHE_L2_s + CACHE_b)) | (set << CACHE_b);
-    for (i = 0; i < CACHE_B / BURST_LEN; i++) {
-      ddr3_write_me(block_start_x + BURST_LEN * i, cache_L2[block_i].data + BURST_LEN * i, tmp);
-    }
-  }
-  for (i = 0; i < CACHE_B / BURST_LEN; i++) {
-    ddr3_read_me(block_start + BURST_LEN * i, cache_L2[block_i].data + BURST_LEN * i);
-  }
-  cache_L2[block_i].validVal = true;
-  cache_L2[block_i].dirtyVal = false;
-  cache_L2[block_i].tag = tag;
-  return block_i;
-}
-
-void dram_write(hwaddr_t addr, size_t len, uint32_t data);
-
-void write_cache_L1(hwaddr_t addr, size_t len, uint32_t data) {
-  uint32_t set = ((addr >> CACHE_b) & (CACHE_L1_S - 1));
-  uint32_t tag = (addr >> (CACHE_b + CACHE_L1_s));
-  uint32_t block_bias = addr & (CACHE_B - 1);
-  int block_i;
-  int set_begin = set * CACHE_L1_E;
-  int set_end = (set + 1) * CACHE_L1_E;
-  for (block_i = set_begin; block_i < set_end; block_i++) {
-    if (cache_L1[block_i].validVal && cache_L1[block_i].tag == tag) {
-      if (block_bias + len > CACHE_B) {
-        dram_write(addr, CACHE_B - block_bias, data);
-        memcpy(cache_L1[block_i].data + block_bias, &data, CACHE_B - block_bias);
-        write_cache_L2(addr, CACHE_B - block_bias, data);
-        write_cache_L1(addr + CACHE_B - block_bias, len - (CACHE_B - block_bias), data >> (CACHE_B - block_bias));
-      } else {
-        dram_write(addr, len, data);
-        memcpy(cache_L1[block_i].data + block_bias, &data, len);
-        write_cache_L2(addr, len, data);
-      }
-      return;
-    }
-  }
-  write_cache_L2(addr, len, data);
-  return;
-}
-
-static void write_cache_L2(hwaddr_t addr, size_t len, uint32_t data) {
-  uint32_t set = ((addr >> CACHE_b) & (CACHE_L2_S - 1));
-  uint32_t tag = (addr >> (CACHE_b + CACHE_L2_s));
-  uint32_t block_bias = addr & (CACHE_B - 1);
-  int block_i;
-  int set_begin = set * CACHE_L2_E;
-  int set_end = (set + 1) * CACHE_L2_E;
-  for (block_i = set_begin; block_i < set_end; block_i++) {
-    if (cache_L2[block_i].validVal && cache_L2[block_i].tag == tag) {
-      cache_L2[block_i].dirtyVal = true;
-      if (block_bias + len > CACHE_B) {
-        memcpy(cache_L2[block_i].data + block_bias, &data, CACHE_B - block_bias);
-        write_cache_L2(addr + CACHE_B - block_bias, len - (CACHE_B - block_bias), data >> (CACHE_B - block_bias));
-      } else {
-        memcpy(cache_L2[block_i].data + block_bias, &data, len);
-      }
-      return;
-    }
-  }
-  block_i = read_cache_L2(addr);
-  cache_L2[block_i].dirtyVal = true;
-  memcpy(cache_L2[block_i].data + block_bias, &data, len);
-  return;
-}
 
 uint32_t dram_read(hwaddr_t, size_t);
 void dram_write(hwaddr_t, size_t, uint32_t);
 
-uint32_t cache_hwaddr_read(hwaddr_t addr, size_t len) {
-  int cache_L1_way_1_index = read_cache_L1(addr);
-  uint32_t block_bias = addr & (CACHE_B - 1);
-  uint8_t ret[8];
-  if (block_bias + len > CACHE_B) {
-    int cache_L1_way_2_index = read_cache_L1(addr + CACHE_B - block_bias);
-    memcpy(ret, cache_L1[cache_L1_way_1_index].data + block_bias, CACHE_B - block_bias);
-    memcpy(ret  + CACHE_B - block_bias, cache_L1[cache_L1_way_2_index].data, len - (CACHE_B - block_bias));
-  } else {
-    memcpy(ret, cache_L1[cache_L1_way_1_index].data + block_bias, len);
+uint64_t cache_cycle = 0;
+uint64_t cache_hit   = 0;
+uint64_t cache_miss  = 0;
+
+/* L1: 64KB total, 64B block, 8-way => 128 sets, 1024 lines */
+L1 cache_L1[CACHE_L1_S * CACHE_L1_E];
+
+static void seed_random_once(void) {
+  static int inited = 0;
+  if (!inited) {
+    inited = 1;
+    srand(0xC0FFEE);
   }
-  int tmp = 0;
-  uint32_t result = unalign_rw(ret + tmp, 4) & (~0u >> ((4 - len) << 3));
-  return result;
+}
+
+static uint32_t get_block_offset(hwaddr_t addr) {
+  /* block_offset = addr & 0x3F */
+  return addr & 0x3fu;
+}
+
+static uint32_t get_set_idx(hwaddr_t addr) {
+  /* set_idx = (addr >> 6) & 0x7F */
+  return (addr >> 6) & 0x7fu;
+}
+
+static uint32_t get_tag(hwaddr_t addr) {
+  /* tag = addr >> 13 */
+  return addr >> 13;
+}
+
+static hwaddr_t get_block_base(hwaddr_t addr) {
+  return addr & ~0x3fu;
+}
+
+void init_cache(void) {
+  int i;
+  for (i = 0; i < (int)(CACHE_L1_S * CACHE_L1_E); i++) {
+    cache_L1[i].validVal = false;
+    cache_L1[i].tag = 0;
+    memset(cache_L1[i].data, 0, CACHE_B);
+  }
+
+  cache_cycle = 0;
+  cache_hit = 0;
+  cache_miss = 0;
+  seed_random_once();
+}
+
+static int l1_probe(hwaddr_t addr) {
+  uint32_t set_idx = get_set_idx(addr);
+  uint32_t tag = get_tag(addr);
+  int base = (int)(set_idx * 8);
+  int way;
+
+  for (way = 0; way < 8; way++) {
+    int idx = base + way;
+    if (cache_L1[idx].validVal && cache_L1[idx].tag == tag) {
+      return idx;
+    }
+  }
+  return -1;
+}
+
+static int l1_fill(hwaddr_t addr) {
+  uint32_t set_idx = get_set_idx(addr);
+  uint32_t tag = get_tag(addr);
+  int base = (int)(set_idx * 8);
+  int victim;
+  hwaddr_t base_addr;
+  int off;
+
+  seed_random_once();
+  victim = base + (rand() % 8);
+
+  base_addr = get_block_base(addr);
+  for (off = 0; off < 64; off += 4) {
+    uint32_t w = dram_read(base_addr + (hwaddr_t)off, 4);
+    memcpy(cache_L1[victim].data + off, &w, 4);
+  }
+
+  cache_L1[victim].tag = tag;
+  cache_L1[victim].validVal = true;
+  return victim;
+}
+
+static uint8_t l1_read_u8(hwaddr_t addr) {
+  int idx = l1_probe(addr);
+
+  if (idx >= 0) {
+    cache_hit++;
+    cache_cycle += 2;
+  } else {
+    cache_miss++;
+    cache_cycle += 200;
+    idx = l1_fill(addr);
+  }
+
+  return cache_L1[idx].data[get_block_offset(addr)];
+}
+
+static void l1_write_u8(hwaddr_t addr, uint8_t val) {
+  int idx = l1_probe(addr);
+
+  if (idx >= 0) {
+    /* hit: write-through + update cache line */
+    cache_hit++;
+    cache_cycle += 2;
+    cache_L1[idx].data[get_block_offset(addr)] = val;
+  } else {
+    /* miss: not write allocate */
+    cache_miss++;
+    cache_cycle += 200;
+  }
+
+  /* write-through: always update DRAM */
+  dram_write(addr, 1, val);
+}
+
+uint32_t cache_hwaddr_read(hwaddr_t addr, size_t len) {
+  uint8_t buf[4] = {0, 0, 0, 0};
+  size_t i;
+  uint32_t raw;
+  unalign u;
+
+  assert(len == 1 || len == 2 || len == 4);
+
+  /* Cross-block is handled by reading byte-by-byte, then assembling via unalign_rw(). */
+  for (i = 0; i < len; i++) {
+    buf[i] = l1_read_u8(addr + (hwaddr_t)i);
+  }
+
+  memset(&u, 0, sizeof(u));
+  memcpy(&u, buf, 4);
+  raw = unalign_rw(&u, 4);
+  return raw & (~0u >> ((4 - len) << 3));
 }
 
 void cache_hwaddr_write(hwaddr_t addr, size_t len, uint32_t data) {
-  write_cache_L1(addr, len, data);
+  size_t i;
+
+  assert(len == 1 || len == 2 || len == 4);
+
+  /* write-through + not write allocate; handle cross-block byte-by-byte */
+  for (i = 0; i < len; i++) {
+    uint8_t b = (data >> (8 * i)) & 0xff;
+    l1_write_u8(addr + (hwaddr_t)i, b);
+  }
 }
