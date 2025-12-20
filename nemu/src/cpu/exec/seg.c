@@ -4,6 +4,33 @@
 #include "cpu/cpu.h"
 #include "memory/memory.h"
 
+static void load_sreg(uint8_t sreg, uint16_t selector) {
+  cpu.sreg[sreg].selector = selector;
+
+  uint32_t idx = selector >> 3;
+  lnaddr_t addr = cpu.gdtr.base + (idx * 8);
+
+  uint32_t low = lnaddr_read(addr, 4);
+  uint32_t high = lnaddr_read(addr + 4, 4);
+
+  uint32_t base_15_0 = low >> 16;
+  uint32_t base_23_16 = (high >> 0) & 0xff;
+  uint32_t base_31_24 = high >> 24;
+  uint32_t base = (base_31_24 << 24) | (base_23_16 << 16) | base_15_0;
+
+  uint32_t limit_15_0 = low & 0xffff;
+  uint32_t limit_19_16 = (high >> 16) & 0xf;
+  uint32_t limit = (limit_19_16 << 16) | limit_15_0;
+
+  uint32_t granularity = (high >> 23) & 1;
+  if (granularity) {
+    limit = (limit << 12) | 0xfff;
+  }
+
+  cpu.sreg[sreg].base = base;
+  cpu.sreg[sreg].limit = limit;
+}
+
 /*
  * 0F 01 /2: lgdt m16&32
  * Read 6 bytes from memory: limit(16) then base(32).
@@ -64,4 +91,37 @@ make_helper(mov_r2cr) {
 
   print_asm("movl %%%s,%%cr%d", regsl[r], cr);
   return 2;
+}
+
+/*
+ * 8E /r: mov Sreg, r/m16
+ * Only DS/ES/SS are required here; IA-32 forbids loading CS via MOV.
+ */
+make_helper(mov_rm2sreg) {
+  int len = decode_rm2r_w(eip + 1);
+  uint8_t sreg = op_dest->reg;
+  uint16_t selector = op_src->val;
+
+  Assert(sreg == R_DS || sreg == R_ES || sreg == R_SS,
+         "Only DS/ES/SS are supported for mov to sreg (got %d)", sreg);
+
+  load_sreg(sreg, selector);
+  print_asm("mov %s,%%%s", op_src->str, regsl[sreg]);
+  return len + 1;
+}
+
+/*
+ * EA cd: ljmp ptr16:32
+ * Far jump (offset32 + selector16). Updates CS via descriptor cache.
+ */
+make_helper(ljmp) {
+  uint32_t offset = instr_fetch(eip + 1, 4);
+  uint16_t selector = instr_fetch(eip + 5, 2);
+
+  load_sreg(R_CS, selector);
+  /* cpu_exec will add returned length; compensate to land at offset. */
+  cpu.eip = offset - 7;
+
+  print_asm("ljmp $0x%x,$0x%x", selector, offset);
+  return 7;
 }

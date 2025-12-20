@@ -95,6 +95,16 @@ int read_ModR_M(swaddr_t eip, Operand *rm, Operand *reg) {
 	reg->type = OP_TYPE_REG;
 	reg->reg = m.reg;
 
+	/*
+	 * Segment selection policy:
+	 * - For general ModR/M-based memory addressing, follow x86 defaults:
+	 *   DS by default, but SS when the effective address uses EBP/ESP as base.
+	 *   This is implemented in load_addr() by setting rm->sreg.
+	 * - String instructions (movs/stos/scas/lods) use implicit DS:ES rules and
+	 *   are handled in their helpers, not via ModR/M.
+	 * - Monitor commands choose sreg explicitly when calling swaddr_read/write.
+	 */
+
 	if(m.mod == 3) {
 		rm->type = OP_TYPE_REG;
 		rm->reg = m.R_M;
