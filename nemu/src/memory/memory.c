@@ -11,9 +11,32 @@ void dram_write(hwaddr_t, size_t, uint32_t);
 uint32_t hwaddr_read(hwaddr_t addr, size_t len) { return cache_hwaddr_read(addr, len); }
 void hwaddr_write(hwaddr_t addr, size_t len, uint32_t data) { cache_hwaddr_write(addr, len, data); }
 
+typedef struct {
+    bool valid;
+    uint32_t tag;
+    uint32_t page_frame;
+} TLBEntry;
+
+TLBEntry tlb[64];
+
+void init_tlb() {
+    int i;
+    for (i = 0; i < 64; i++) {
+        tlb[i].valid = 0;
+    }
+}
+
 hwaddr_t page_translate(lnaddr_t addr) {
     if (!cpu.cr0.PG) {
         return addr;
+    }
+
+    uint32_t tag = (addr >> 12);
+    int i;
+    for (i = 0; i < 64; i++) {
+        if (tlb[i].valid && tlb[i].tag == tag) {
+            return (tlb[i].page_frame << 12) + (addr & 0xfff);
+        }
     }
 
     uint32_t dir = (addr >> 22) & 0x3ff;
@@ -29,6 +52,12 @@ hwaddr_t page_translate(lnaddr_t addr) {
     PTE pte;
     pte.val = hwaddr_read(pte_addr, 4);
     Assert(pte.present, "PTE not present at 0x%x for linear address 0x%x", pte_addr, addr);
+
+    static int tlb_idx = 0;
+    tlb[tlb_idx].valid = 1;
+    tlb[tlb_idx].tag = tag;
+    tlb[tlb_idx].page_frame = pte.page_frame;
+    tlb_idx = (tlb_idx + 1) % 64;
 
     return (pte.page_frame << 12) + offset;
 }

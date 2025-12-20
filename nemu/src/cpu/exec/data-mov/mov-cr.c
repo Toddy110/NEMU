@@ -11,6 +11,7 @@ make_helper(mov_r2cr) {
         cpu.cr0.val = reg_l(rm);
     } else if (reg == 3) {
         cpu.cr3.val = reg_l(rm);
+        init_tlb();
     } else {
         /* Assert(0, "Move to invalid control register CR%d", reg); */
     }
