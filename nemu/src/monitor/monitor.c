@@ -93,6 +93,22 @@ void restart() {
 	cpu.cr0.val &= ~0x1u;      /* PE = 0 */
 	cpu.cr0.val &= ~CR0_PG;    /* PG = 0 */
 
+	/* Initialize segment caches to allow instruction fetch before the first
+	 * protected-mode far jump reloads CS (hardware keeps hidden caches).
+	 */
+	cpu.cs.selector = 0;
+	cpu.cs.base = 0;
+	cpu.cs.limit = 0xffffffffu;
+	cpu.ds.selector = 0;
+	cpu.ds.base = 0;
+	cpu.ds.limit = 0xffffffffu;
+	cpu.es.selector = 0;
+	cpu.es.base = 0;
+	cpu.es.limit = 0xffffffffu;
+	cpu.ss.selector = 0;
+	cpu.ss.base = 0;
+	cpu.ss.limit = 0xffffffffu;
+
 	/* Initialize TLB. */
 	tlb_init();
 
