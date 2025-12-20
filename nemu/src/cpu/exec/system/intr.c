@@ -85,12 +85,21 @@ make_helper(int_i_b) {
 
   /* Fetch IDT gate descriptor. */
   lnaddr_t gate = cpu.idtr.base + ((lnaddr_t)vec << 3);
+  if (vec == 0x80) {
+    printf("[NEMU] int80: eip=0x%08x idtr.base=0x%08x idtr.limit=0x%04x gate=0x%08x\n",
+           eip, cpu.idtr.base, cpu.idtr.limit, gate);
+  }
   uint32_t low = lnaddr_read(gate, 4);
   uint32_t high = lnaddr_read(gate + 4, 4);
 
   uint16_t selector = (low >> 16) & 0xffff;
   uint32_t offset = (low & 0xffff) | (high & 0xffff0000);
   uint8_t type_attr = (high >> 8) & 0xff;
+
+  if (vec == 0x80) {
+    printf("[NEMU] int80 gate: low=0x%08x high=0x%08x sel=0x%04x off=0x%08x type=0x%02x\n",
+           low, high, selector, offset, type_attr);
+  }
 
   Assert(type_attr & 0x80, "IDT gate not present: vec=%u idtr.base=0x%08x gate=0x%08x", vec, cpu.idtr.base, gate);
 
