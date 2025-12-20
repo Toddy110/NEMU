@@ -31,47 +31,26 @@ hwaddr_t page_translate(lnaddr_t addr) {
         return addr;
     }
 
-    uint32_t tag = (addr >> 12);
-    int i;
-    for (i = 0; i < 64; i++) {
-        if (tlb[i].valid && tlb[i].tag == tag) {
-            return (tlb[i].page_frame << 12) + (addr & 0xfff);
-        }
-    }
+    uint32_t dir = (addr >> 22) & 0x3FF;
+    uint32_t page = (addr >> 12) & 0x3FF;
+    uint32_t offset = addr & 0xFFF;
 
-    uint32_t dir = (addr >> 22) & 0x3ff;
-    uint32_t page = (addr >> 12) & 0x3ff;
-    uint32_t offset = addr & 0xfff;
+    uint32_t pde_addr = cpu.cr3 + dir * 4;
+    uint32_t pde = hwaddr_read(pde_addr, 4);
+    assert(pde & 0x1);
 
-    hwaddr_t pde_addr = cpu.cr3 + (dir * 4);
-    PDE pde;
-    pde.val = hwaddr_read(pde_addr, 4);
-    Assert(pde.present, "PDE not present at 0x%x for linear address 0x%x", pde_addr, addr);
+    uint32_t pte_addr = (pde & 0xFFFFF000) + page * 4;
+    uint32_t pte = hwaddr_read(pte_addr, 4);
+    assert(pte & 0x1);
 
-    hwaddr_t pte_addr = (pde.page_frame << 12) + (page * 4);
-    PTE pte;
-    pte.val = hwaddr_read(pte_addr, 4);
-    Assert(pte.present, "PTE not present at 0x%x for linear address 0x%x", pte_addr, addr);
-
-    static int tlb_idx = 0;
-    tlb[tlb_idx].valid = 1;
-    tlb[tlb_idx].tag = tag;
-    tlb[tlb_idx].page_frame = pte.page_frame;
-    tlb_idx = (tlb_idx + 1) % 64;
-
-    return (pte.page_frame << 12) + offset;
+    return (pte & 0xFFFFF000) + offset;
 }
 
 uint32_t lnaddr_read(lnaddr_t addr, size_t len) {
     if (((addr & 0xfff) + len) > 0x1000) {
-        /* Cross page boundary */
-        uint32_t data = 0;
-        int i; for (i = 0; i < len; i++) {
-            hwaddr_t hwaddr = page_translate(addr + i);
-            uint32_t b = hwaddr_read(hwaddr, 1);
-            data |= (b << (i * 8));
-        }
-        return data;
+        /* Cross page boundary: terminate for now (can be optimized later). */
+        assert(0);
+        return 0;
     } else {
         hwaddr_t hwaddr = page_translate(addr);
         return hwaddr_read(hwaddr, len);
@@ -80,12 +59,8 @@ uint32_t lnaddr_read(lnaddr_t addr, size_t len) {
 
 void lnaddr_write(lnaddr_t addr, size_t len, uint32_t data) {
     if (((addr & 0xfff) + len) > 0x1000) {
-        /* Cross page boundary */
-        int i; for (i = 0; i < len; i++) {
-            hwaddr_t hwaddr = page_translate(addr + i);
-            uint8_t b = (data >> (i * 8)) & 0xff;
-            hwaddr_write(hwaddr, 1, b);
-        }
+        /* Cross page boundary: terminate for now (can be optimized later). */
+        assert(0);
     } else {
         hwaddr_t hwaddr = page_translate(addr);
         hwaddr_write(hwaddr, len, data);
