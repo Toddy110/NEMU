@@ -8,9 +8,7 @@
 uint32_t dram_read(hwaddr_t, size_t);
 void dram_write(hwaddr_t, size_t, uint32_t);
 
-uint64_t cache_cycle = 0;
-uint64_t cache_hit   = 0;
-uint64_t cache_miss  = 0;
+uint64_t cache_cycle = 0, cache_hit = 0, cache_miss = 0;
 
 /* L1: 64KB total, 64B block, 8-way => 128 sets, 1024 lines */
 L1 cache_L1[CACHE_L1_S * CACHE_L1_E];

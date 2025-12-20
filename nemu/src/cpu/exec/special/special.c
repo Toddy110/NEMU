@@ -1,5 +1,6 @@
 #include "cpu/exec/helper.h"
 #include "monitor/monitor.h"
+#include "memory/cache.h"
 
 make_helper(inv) {
 	/* invalid opcode */
@@ -35,6 +36,12 @@ make_helper(nemu_trap) {
 			printf("\33[1;31mnemu: HIT %s TRAP\33[0m at eip = 0x%08x\n\n",
 					(cpu.eax == 0 ? "GOOD" : "BAD"), cpu.eip);
 			nemu_state = END;
+                        if (cpu.eax == 0) {
+                                Log("Cache: cycle=%lu, hit=%lu, miss=%lu",
+                                    (unsigned long)cache_cycle,
+                                    (unsigned long)cache_hit,
+                                    (unsigned long)cache_miss);
+                        }
 	}
 
 	return 1;
