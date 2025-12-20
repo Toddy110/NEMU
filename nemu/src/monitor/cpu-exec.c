@@ -64,7 +64,13 @@ void cpu_exec(volatile uint32_t n) {
 
 		cpu.eip += instr_len;
 		if (cpu.eip == 0) {
-			printf("\n[NEMU] EIP became 0: prev_eip=0x%08x instr_len=%d asm=%s\n", eip_temp, instr_len, assembly);
+			uint32_t b0 = instr_fetch(eip_temp + 0, 1);
+			uint32_t b1 = instr_fetch(eip_temp + 1, 1);
+			uint32_t b2 = instr_fetch(eip_temp + 2, 1);
+			uint32_t b3 = instr_fetch(eip_temp + 3, 1);
+			uint32_t b4 = instr_fetch(eip_temp + 4, 1);
+			printf("\n[NEMU] EIP became 0: prev_eip=0x%08x instr_len=%d bytes=%02x %02x %02x %02x %02x asm=%s\n",
+			       eip_temp, instr_len, b0, b1, b2, b3, b4, assembly);
 		}
 
 #ifdef DEBUG
