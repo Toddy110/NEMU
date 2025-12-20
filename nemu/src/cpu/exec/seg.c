@@ -117,13 +117,27 @@ make_helper(mov_rm2sreg) {
  * Far jump (offset32 + selector16). Updates CS via descriptor cache.
  */
 make_helper(ljmp) {
-  uint32_t offset = instr_fetch(eip + 1, 4);
-  uint16_t selector = instr_fetch(eip + 5, 2);
+  uint32_t offset;
+  uint16_t selector;
+  int len;
+
+  /* In 16-bit operand-size mode, ljmp uses ptr16:16 (offset16 + selector16).
+   * Otherwise, it uses ptr16:32 (offset32 + selector16).
+   */
+  if (ops_decoded.is_operand_size_16) {
+    offset = instr_fetch(eip + 1, 2);
+    selector = instr_fetch(eip + 3, 2);
+    len = 5;
+  } else {
+    offset = instr_fetch(eip + 1, 4);
+    selector = instr_fetch(eip + 5, 2);
+    len = 7;
+  }
 
   load_sreg(R_CS, selector);
   /* cpu_exec will add returned length; compensate to land at offset. */
-  cpu.eip = offset - 7;
+  cpu.eip = offset - (uint32_t)len;
 
   print_asm("ljmp $0x%x,$0x%x", selector, offset);
-  return 7;
+  return len;
 }
