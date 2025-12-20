@@ -1,7 +1,10 @@
-nemu_CFLAGS_EXTRA := -ggdb3 -O2 -fno-pie
+NO_PIE_CFLAG := $(shell $(CC) -fno-pie -x c /dev/null -c -o /dev/null >/dev/null 2>&1 && echo -fno-pie)
+NO_PIE_LDFLAG := $(shell $(CC) -no-pie -x c /dev/null -o /dev/null >/dev/null 2>&1 && echo -no-pie)
+
+nemu_CFLAGS_EXTRA := -ggdb3 -O2 $(NO_PIE_CFLAG)
 $(eval $(call make_common_rules,nemu,$(nemu_CFLAGS_EXTRA)))
 
-nemu_LDFLAGS := -lreadline -no-pie
+nemu_LDFLAGS := -lreadline $(NO_PIE_LDFLAG)
 
 $(nemu_BIN): $(nemu_OBJS)
 	$(call make_command, $(CC), $(nemu_LDFLAGS), ld $@, $^)
