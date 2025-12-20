@@ -92,22 +92,45 @@ void lnaddr_write(lnaddr_t addr, size_t len, uint32_t data) {
     }
 }
 
-lnaddr_t segment_translate(swaddr_t addr, size_t len, uint8_t sreg) {
-    if (cpu.cr0.PE) {
-        Assert(sreg >= 0 && sreg < 6, "Invalid segment register %d", sreg);
-        uint32_t base = cpu.sreg[sreg].base;
-        uint32_t limit = cpu.sreg[sreg].limit;
-        Assert(addr + len - 1 <= limit, "Segment limit exceeded at 0x%x (limit 0x%x)", addr, limit);
-        return base + addr;
+lnaddr_t seg_translate(swaddr_t addr, size_t len, uint8_t sreg) {
+    /*
+     * Real mode: linear address == logical address.
+     * Protected mode: linear address == segment.base + offset.
+     */
+    if ((cpu.cr0.val & 0x1) == 0) {
+        return addr;
     }
-    return addr;
+
+    SegmentReg *seg = NULL;
+    switch (sreg) {
+        case 0: seg = &cpu.cs; break;
+        case 1: seg = &cpu.ds; break;
+        case 2: seg = &cpu.es; break;
+        case 3: seg = &cpu.ss; break;
+        default:
+            Assert(0, "Invalid segment selector id %d (expected 0=CS,1=DS,2=ES,3=SS)", sreg);
+    }
+
+    /*
+     * Bound check: ensure [addr, addr+len-1] is within segment limit.
+     * Use 64-bit arithmetic to avoid overflow.
+     */
+    uint64_t end = (uint64_t)addr + (uint64_t)len - 1;
+    Assert(end <= seg->limit, "Segment limit exceeded: offset=0x%x len=%zu limit=0x%x", addr, len, seg->limit);
+
+    return seg->base + addr;
+}
+
+/* Compatibility with existing code/header naming. */
+lnaddr_t segment_translate(swaddr_t addr, size_t len, uint8_t sreg) {
+    return seg_translate(addr, len, sreg);
 }
 
 uint32_t swaddr_read(swaddr_t addr, size_t len) {
 #ifdef DEBUG
         assert(len == 1 || len == 2 || len == 4);
 #endif
-        lnaddr_t lnaddr = segment_translate(addr, len, R_DS);
+        lnaddr_t lnaddr = seg_translate(addr, len, 1);
         return lnaddr_read(lnaddr, len);
 }
 
@@ -115,7 +138,7 @@ uint32_t swaddr_read_instr(swaddr_t addr, size_t len) {
 #ifdef DEBUG
         assert(len == 1 || len == 2 || len == 4);
 #endif
-        lnaddr_t lnaddr = segment_translate(addr, len, R_CS);
+        lnaddr_t lnaddr = seg_translate(addr, len, 0);
         return lnaddr_read(lnaddr, len);
 }
 
@@ -123,6 +146,6 @@ void swaddr_write(swaddr_t addr, size_t len, uint32_t data) {
 #ifdef DEBUG
         assert(len == 1 || len == 2 || len == 4);
 #endif
-        lnaddr_t lnaddr = segment_translate(addr, len, R_DS);
+        lnaddr_t lnaddr = seg_translate(addr, len, 1);
         lnaddr_write(lnaddr, len, data);
 }
