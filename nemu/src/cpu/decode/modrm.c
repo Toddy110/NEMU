@@ -79,6 +79,7 @@ int load_addr(swaddr_t eip, ModR_M *m, Operand *rm) {
 
 	rm->type = OP_TYPE_MEM;
 	rm->addr = addr;
+	rm->sreg = R_DS;
 
 	return instr_len;
 }

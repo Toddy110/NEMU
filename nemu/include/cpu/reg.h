@@ -8,6 +8,19 @@ enum { R_AX, R_CX, R_DX, R_BX, R_SP, R_BP, R_SI, R_DI };
 enum { R_AL, R_CL, R_DL, R_BL, R_AH, R_CH, R_DH, R_BH };
 enum { R_ES, R_CS, R_SS, R_DS, R_FS, R_GS };
 
+typedef struct {
+        uint16_t limit;
+        uint32_t base;
+} GDTR;
+
+typedef struct {
+        uint16_t selector;
+        struct {
+                uint32_t base;
+                uint32_t limit;
+        };
+} SegmentReg;
+
 /* TODO: Re-organize the `CPU_state' structure to match the register
  * encoding scheme in i386 instruction format. For example, if we
  * access cpu.gpr[3]._16, we will get the `bx' register; if we access
@@ -31,8 +44,13 @@ typedef struct {
      };
 
      swaddr_t eip;
-	struct { uint16_t limit; uint32_t base; } gdtr, idtr;
-	struct { uint16_t selector; struct { uint32_t base; uint32_t limit; }; } sreg[6];
+	GDTR gdtr, idtr;
+	union {
+                SegmentReg sreg[6];
+                struct {
+                        SegmentReg es, cs, ss, ds, fs, gs;
+                };
+        };
      
      union {
                 struct {
