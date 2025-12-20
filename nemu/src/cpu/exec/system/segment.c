@@ -30,14 +30,6 @@ void load_sreg(uint8_t sreg, uint16_t selector) {
     cpu.sreg[sreg].limit = limit;
 }
 
-make_helper(lgdt) {
-    int len = decode_rm_l(eip + 1);
-    cpu.gdtr.limit = lnaddr_read(op_src->addr, 2);
-    cpu.gdtr.base = lnaddr_read(op_src->addr + 2, 4);
-    print_asm("lgdt %s", op_src->str);
-    return len + 1;
-}
-
 make_helper(lidt) {
     int len = decode_rm_l(eip + 1);
     cpu.idtr.limit = lnaddr_read(op_src->addr, 2);
