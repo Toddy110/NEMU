@@ -88,6 +88,9 @@ void restart() {
 	/* Set the initial instruction pointer. */
 	cpu.eip = ENTRY_START;
 
+	/* Boot with paging disabled (lab requirement). */
+	cpu.cr0.val &= ~CR0_PG;
+
 	/* Initialize DRAM. */
 	init_ddr3();
 

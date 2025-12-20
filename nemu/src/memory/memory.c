@@ -43,7 +43,7 @@ hwaddr_t page_translate(lnaddr_t addr) {
     uint32_t page = (addr >> 12) & 0x3ff;
     uint32_t offset = addr & 0xfff;
 
-    hwaddr_t pde_addr = (cpu.cr3.page_directory_base << 12) + (dir * 4);
+    hwaddr_t pde_addr = cpu.cr3 + (dir * 4);
     PDE pde;
     pde.val = hwaddr_read(pde_addr, 4);
     Assert(pde.present, "PDE not present at 0x%x for linear address 0x%x", pde_addr, addr);

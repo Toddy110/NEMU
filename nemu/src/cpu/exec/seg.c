@@ -60,7 +60,7 @@ make_helper(mov_cr2r) {
     reg_l(r) = cpu.cr0.val;
   } else if (cr == 3) {
     /* Keep compatibility with existing implementation. */
-    reg_l(r) = cpu.cr3.val;
+    reg_l(r) = cpu.cr3;
   } else {
     /* Unsupported CRn in this lab; ignore to avoid crashing release builds. */
   }
@@ -83,7 +83,7 @@ make_helper(mov_r2cr) {
     cpu.cr0.val = reg_l(r);
   } else if (cr == 3) {
     /* Keep compatibility with existing implementation. */
-    cpu.cr3.val = reg_l(r);
+    cpu.cr3 = reg_l(r) & 0xfffff000u;
     init_tlb();
   } else {
     /* Unsupported CRn in this lab; ignore to avoid crashing release builds. */
