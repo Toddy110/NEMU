@@ -63,16 +63,37 @@ void lnaddr_write(lnaddr_t addr, size_t len, uint32_t data) {
     }
 }
 
+lnaddr_t segment_translate(swaddr_t addr, size_t len, uint8_t sreg) {
+    if (cpu.cr0.PE) {
+        Assert(sreg >= 0 && sreg < 6, "Invalid segment register %d", sreg);
+        uint32_t base = cpu.sreg[sreg].base;
+        uint32_t limit = cpu.sreg[sreg].limit;
+        Assert(addr + len - 1 <= limit, "Segment limit exceeded at 0x%x (limit 0x%x)", addr, limit);
+        return base + addr;
+    }
+    return addr;
+}
+
 uint32_t swaddr_read(swaddr_t addr, size_t len) {
 #ifdef DEBUG
         assert(len == 1 || len == 2 || len == 4);
 #endif
-        return lnaddr_read(addr, len);
+        lnaddr_t lnaddr = segment_translate(addr, len, R_DS);
+        return lnaddr_read(lnaddr, len);
+}
+
+uint32_t swaddr_read_instr(swaddr_t addr, size_t len) {
+#ifdef DEBUG
+        assert(len == 1 || len == 2 || len == 4);
+#endif
+        lnaddr_t lnaddr = segment_translate(addr, len, R_CS);
+        return lnaddr_read(lnaddr, len);
 }
 
 void swaddr_write(swaddr_t addr, size_t len, uint32_t data) {
 #ifdef DEBUG
         assert(len == 1 || len == 2 || len == 4);
 #endif
-        lnaddr_write(addr, len, data);
+        lnaddr_t lnaddr = segment_translate(addr, len, R_DS);
+        lnaddr_write(lnaddr, len, data);
 }

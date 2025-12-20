@@ -2,6 +2,7 @@
 #include "cpu/decode/modrm.h"
 
 #include "all-instr.h"
+#include "cpu/exec/system/segment.h"
 
 typedef int (*helper_fun)(swaddr_t);
 static make_helper(_2byte_esc);
@@ -87,7 +88,7 @@ make_group(group6,
 	inv, inv, inv, inv)
 
 make_group(group7,
-	inv, inv, inv, inv, 
+	inv, inv, lgdt, lidt, 
 	inv, inv, inv, inv)
 
 
