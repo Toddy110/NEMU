@@ -31,11 +31,13 @@ hwaddr_t page_translate(lnaddr_t addr) {
 
     uint32_t pde_addr = cpu.cr3 + dir * 4;
     uint32_t pde = hwaddr_read(pde_addr, 4);
-    assert(pde & 0x1);
+        Assert(pde & 0x1, "PDE not present: lnaddr=0x%08x cr3=0x%08x pde_addr=0x%08x pde=0x%08x dir=%u",
+            addr, cpu.cr3, pde_addr, pde, dir);
 
     uint32_t pte_addr = (pde & 0xFFFFF000) + page * 4;
     uint32_t pte = hwaddr_read(pte_addr, 4);
-    assert(pte & 0x1);
+        Assert(pte & 0x1, "PTE not present: lnaddr=0x%08x cr3=0x%08x pte_addr=0x%08x pte=0x%08x dir=%u page=%u",
+            addr, cpu.cr3, pte_addr, pte, dir, page);
 
     hwaddr = (pte & 0xFFFFF000) + offset;
     tlb_fill(addr, hwaddr);
