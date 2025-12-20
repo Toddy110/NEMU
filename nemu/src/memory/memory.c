@@ -52,8 +52,13 @@ uint32_t lnaddr_read(lnaddr_t addr, size_t len) {
         assert(0);
         return 0;
     } else {
-        hwaddr_t hwaddr = page_translate(addr);
-        return hwaddr_read(hwaddr, len);
+        /* Enable paging only when PE=1 and PG=1. */
+        if ((cpu.cr0.val & 0x1) && (cpu.cr0.val & CR0_PG)) {
+            hwaddr_t hwaddr = page_translate(addr);
+            return hwaddr_read(hwaddr, len);
+        } else {
+            return hwaddr_read(addr, len);
+        }
     }
 }
 
@@ -62,8 +67,13 @@ void lnaddr_write(lnaddr_t addr, size_t len, uint32_t data) {
         /* Cross page boundary: terminate for now (can be optimized later). */
         assert(0);
     } else {
-        hwaddr_t hwaddr = page_translate(addr);
-        hwaddr_write(hwaddr, len, data);
+        /* Enable paging only when PE=1 and PG=1. */
+        if ((cpu.cr0.val & 0x1) && (cpu.cr0.val & CR0_PG)) {
+            hwaddr_t hwaddr = page_translate(addr);
+            hwaddr_write(hwaddr, len, data);
+        } else {
+            hwaddr_write(addr, len, data);
+        }
     }
 }
 
