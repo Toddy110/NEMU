@@ -116,6 +116,11 @@ make_helper(iret) {
   uint16_t new_cs = (uint16_t)(pop32() & 0xffff);
   uint32_t new_eflags = pop32();
 
+  if (in_sw_intr) {
+    printf("[NEMU] iret-from-int80: pop eip=0x%08x cs=0x%04x eflags=0x%08x (kernel esp now 0x%08x) restore user esp=0x%08x\n",
+           new_eip, new_cs, new_eflags, cpu.esp, saved_user_esp);
+  }
+
   cpu.eflags.val = new_eflags;
   load_cs_cache(new_cs);
 
