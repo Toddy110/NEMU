@@ -28,6 +28,18 @@ static inline uint32_t pop32(void) {
   return val;
 }
 
+/*
+ * In this lab setup, software interrupt (int 0x80) is used for system calls.
+ * Since we do not implement privilege switching/TSS, letting the kernel run
+ * on the user stack would overwrite the interrupt frame. We therefore switch
+ * to a fixed kernel stack temporarily.
+ */
+static int in_sw_intr = 0;
+static uint32_t saved_user_esp = 0;
+
+/* Chosen to match kernel’s convention (see kernel/src/main.c). */
+#define KERNEL_STACK_TOP 0xC0000000u
+
 static void load_cs_cache(uint16_t selector) {
   /* Keep consistent with seg.c’s descriptor parsing logic. */
   cpu.cs.selector = selector;
@@ -59,6 +71,12 @@ static void load_cs_cache(uint16_t selector) {
 make_helper(int_i_b) {
   uint8_t vec = instr_fetch(eip + 1, 1);
   uint32_t next_eip = eip + 2;
+
+  if (vec == 0x80 && !in_sw_intr) {
+    saved_user_esp = cpu.esp;
+    cpu.esp = KERNEL_STACK_TOP;
+    in_sw_intr = 1;
+  }
 
   /* Push EFLAGS, CS, EIP (32-bit slots). */
   push32(cpu.eflags.val);
@@ -94,6 +112,11 @@ make_helper(iret) {
 
   /* cpu_exec will add 1; compensate to land exactly. */
   cpu.eip = new_eip - 1;
+
+  if (in_sw_intr) {
+    cpu.esp = saved_user_esp;
+    in_sw_intr = 0;
+  }
   print_asm("iret");
   return 1;
 }
