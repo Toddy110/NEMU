@@ -1,7 +1,12 @@
 #include "common.h"
 #include <string.h>
 
+#ifdef IA32_PAGE
+#include "memory.h"
+#define RAMDISK_START ((void *)KOFFSET)
+#else
 #define RAMDISK_START ((void *)0)
+#endif
 #define RAMDISK_SIZE 0xa0000
 
 /* The kernel is monolithic, therefore we do not need to
